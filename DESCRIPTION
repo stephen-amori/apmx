@@ -1,0 +1,28 @@
+Package: apmx
+Type: Package
+Title: Automated Approach to PK and PKPD Dataset Assembly
+Version: 0.1.0
+Author: c(person(given = "Stephen",
+           family = "Amori", 
+           role = c("aut", "cre"),
+           email="stephen.amori@amadorbio.com"),
+          person(given = "Ethan",
+           family = "DellaMaestra", 
+           role = c("aut", "cre"),
+           email="ethan.dellamaestra@amadorbio.com"),
+          person(given = "Daniel",
+           family = "Litow", 
+           role = c("aut", "cre"),
+           email="daniel.litow@amadorbio.com"),
+          person(given = "Jonah",
+           family = "Lyon", 
+           role = c("aut", "cre"),
+           email="jonah.lyon@amadorbio.com")
+           )
+Maintainer: Stephen Amori <stephen.amori@amadorbio.com>
+Description: Automated methods to assemble PK and PKPD datasets for analysis in NONMEM. The package includes functions to build datasets from SDTM, ADaM, or other dataset formats, combine population datasets, add covariates, and create definition files.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Imports: dplyr, tidyr, purrr, rmarkdown, lubridate, this.path, flextable, officer, tidyselect, utils
+RoxygenNote: 7.2.0
