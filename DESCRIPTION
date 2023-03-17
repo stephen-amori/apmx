@@ -26,3 +26,5 @@ Encoding: UTF-8
 LazyData: true
 Imports: dplyr, tidyr, purrr, rmarkdown, lubridate, this.path, flextable, officer, tidyselect, utils
 RoxygenNote: 7.2.0
+URL: https://github.com/stephen-amori/apmx
+BugReports: https://github.com/stephen-amori/apmx/issues
