@@ -20,7 +20,9 @@ Author: c(person(given = "Stephen",
            email="jonah.lyon@amadorbio.com")
            )
 Maintainer: Stephen Amori <stephen.amori@amadorbio.com>
-Description: Automated methods to assemble PK and PKPD datasets for analysis in NONMEM. The package includes functions to build datasets from SDTM, ADaM, or other dataset formats, combine population datasets, add covariates, and create definition files.
+Description: Automated methods to assemble PK and PKPD datasets for analysis in NONMEM.
+    The package includes functions to build datasets from SDTM, ADaM, or other dataset formats,
+    combine population datasets, add covariates, and create definition files.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
