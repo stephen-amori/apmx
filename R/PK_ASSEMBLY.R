@@ -436,17 +436,17 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
   if (is.data.frame(pc)) {
     df <- df %>%
       dplyr::bind_rows(pc) %>% #add dose and pc events
-      dplyr::arrange(USUBJID, DTIM, NDAY, TPT, CMT, -EVID)} #arrange
+      dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)} #arrange
 
   if(is.data.frame(pd)) {
     df <- df %>%
       dplyr::bind_rows(pd) %>% #add pd events
-      dplyr::arrange(USUBJID, DTIM, NDAY, TPT, CMT, -EVID)}
+      dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)}
 
   if(is.data.frame(other)) {
     df <- df %>%
       dplyr::bind_rows(other) %>%
-      dplyr::arrange(USUBJID, DTIM, NDAY, TPT, CMT, -EVID)}
+      dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)}
 
   ###ACTUAL + NOMINAL TIME CALCULATIONS###
   df <- df %>%
@@ -650,7 +650,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
         sl.cov[, "NRACE"] <- NA
         sl.cov$NRACE[grepl("white|caucasian", sl.cov$RACE, ignore.case = T)] <- 1
         sl.cov$NRACE[grepl("black|african|aa", sl.cov$RACE, ignore.case = T)] <- 2
-        sl.cov$NRACE[grepl("asian", sl.cov$RACE, ignore.case = T)] <- 3
+        sl.cov$NRACE[grepl("asian", sl.cov$RACE, ignore.case = T) & !grepl("caucasian", sl.cov$RACE, ignore.case=T)] <- 3
         sl.cov$NRACE[grepl("alaskan|native", sl.cov$RACE, ignore.case = T)] <- 4
         sl.cov$NRACE[grepl("hawa|pacific|island", sl.cov$RACE, ignore.case = T)] <- 5
         sl.cov$NRACE[grepl("multiple|mul", sl.cov$RACE, ignore.case = T)] <- 6
@@ -700,7 +700,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
         tv.cov[, "TRACE"] <- NA
         tv.cov$TRACE[grepl("white|caucasian", tv.cov$RACE, ignore.case = T)] <- 1
         tv.cov$TRACE[grepl("black|african|aa", tv.cov$RACE, ignore.case = T)] <- 2
-        tv.cov$TRACE[grepl("asian", tv.cov$RACE, ignore.case = T)] <- 3
+        tv.cov$NRACE[grepl("asian", tv.cov$RACE, ignore.case = T) & !grepl("caucasian", tv.cov$RACE, ignore.case=T)] <- 3
         tv.cov$TRACE[grepl("alaskan|native", tv.cov$RACE, ignore.case = T)] <- 4
         tv.cov$TRACE[grepl("hawa|pacific|island", tv.cov$RACE, ignore.case = T)] <- 5
         tv.cov$TRACE[grepl("multiple|mul", tv.cov$RACE, ignore.case = T)] <- 6
@@ -867,7 +867,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
   if(is.numeric(amt.rnd)) {
     df <- df %>%
       dplyr::mutate(AMT = round(AMT, amt.rnd),
-                   RATE = ifelse("RATE" %in% ex.nonmem, round(RATE, amt.rnd), NA))
+                    RATE = ifelse("RATE" %in% ex.nonmem, round(RATE, amt.rnd), NA))
 
     if ("RATE" %in% ex.nonmem) {
       df <- df %>%
@@ -924,7 +924,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
                   VERSN = func.version,
                   BUILDD = Sys.Date()) %>%
     dplyr::mutate_at(.vars = c(ex.col.c, pc.col.c, pd.col.c, other.col.c, cat.cov.c),
-              .funs = function(x) toupper(x))
+                     .funs = function(x) toupper(x))
 
   if (is.na(col.order)) {
     df <- df %>%
@@ -1112,7 +1112,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
       cov[, nname] <- NA
       cov[grepl("white|caucasian", cov$RACE, ignore.case = T), nname] <- 1
       cov[grepl("black|african|aa", cov$RACE, ignore.case = T), nname] <- 2
-      cov[grepl("asian", cov$RACE, ignore.case = T), nname] <- 3
+      cov[grepl("asian", cov$RACE, ignore.case = T) & !grepl("caucasian", cov$RACE, ignore.case=T), nname] <- 3
       cov[grepl("alaskan|native", cov$RACE, ignore.case = T), nname] <- 4
       cov[grepl("hawa|pacific|island", cov$RACE, ignore.case = T), nname] <- 5
       cov[grepl("multiple|mul", cov$RACE, ignore.case = T), nname] <- 6
@@ -1318,8 +1318,8 @@ pk_define <- function(file, project, variable.list, template) {
     dplyr::left_join(vl, by="Variable") %>%
     dplyr::mutate(Variable = cov_find(df, cov="continuous", type="numeric"),
                   Description = dplyr::case_when(grepl("^B", Variable) ~ paste("Baseline", Description),
-                                                grepl("^T", Variable) ~ paste("Time-varying", Description),
-                                                TRUE ~ Description))
+                                                 grepl("^T", Variable) ~ paste("Time-varying", Description),
+                                                 TRUE ~ Description))
 
   vl <- dplyr::bind_rows(vl, vl.cat.cov.c, vl.cat.cov.n, vl.cont.cov)
 
@@ -1430,8 +1430,8 @@ pk_define <- function(file, project, variable.list, template) {
     dplyr::left_join(values, by="Variable") %>% #join values
     dplyr::mutate(Units = dplyr::case_when(is.na(Units) ~ "",
                                            TRUE ~ Units),
-                 Values = dplyr::case_when(is.na(Values) ~ "",
-                                           TRUE ~ Values)) %>%
+                  Values = dplyr::case_when(is.na(Values) ~ "",
+                                            TRUE ~ Values)) %>%
     dplyr::select(Variable, Categorization, Description, Values, Units, Format, Comment)
 
   define$Units[define$Variable=="CMT"] <- c(cmtd$DVIDU, cmto$DVIDU) #Add CMT units
@@ -1558,21 +1558,37 @@ pk_combine <- function(df1, df2) {
   for (i in cat.cov.c) {
     name <- gsub("C$", "", i)
     if (i=="NSEXC") {
-      df$NSEX[grepl("m|male", df$NSEXC, ignore.case = T)] <- 0
-      df$NSEX[grepl("f|female", df$NSEXC, ignore.case = T)] <- 1
-      df$NSEX[grepl("unk|not|miss", df$NSEXC, ignore.case = T)] <- 2}
+      df$NSEX[grepl("m|male", df$NTSEXC, ignore.case = T)] <- 0
+      df$NSEX[grepl("f|female", df$TSEXC, ignore.case = T)] <- 1
+      df$NSEX[grepl("unk|not|miss", df$TSEXC, ignore.case = T)] <- 2}
+    else if (i=="TSEXC") {
+      df$TSEX[grepl("m|male", df$TSEXC, ignore.case = T)] <- 0
+      df$TSEX[grepl("f|female", df$TSEXC, ignore.case = T)] <- 1
+      df$TSEX[grepl("unk|not|miss", df$TSEXC, ignore.case = T)] <- 2}
     else if (i=="NRACEC") {
       df$NRACE[grepl("white|caucasian", df$NRACEC, ignore.case = T)] <- 1
       df$NRACE[grepl("black|african|aa", df$NRACEC, ignore.case = T)] <- 2
-      df$NRACE[grepl("asian", df$NRACEC, ignore.case = T)] <- 3
+      df$NRACE[grepl("asian", df$NRACEC, ignore.case = T) & !grepl("caucasian", df$NRACEC, ignore.case=T)] <- 3
       df$NRACE[grepl("alaskan|native", df$NRACEC, ignore.case = T)] <- 4
       df$NRACE[grepl("hawa|pacific|island", df$NRACEC, ignore.case = T)] <- 5
       df$NRACE[grepl("other", df$NRACEC, ignore.case = T)] <- 6
       df$NRACE[grepl("unknown", df$NRACEC, ignore.case = T)] <- 7}
+    else if (i=="TRACEC") {
+      df$TRACE[grepl("white|caucasian", df$TRACEC, ignore.case = T)] <- 1
+      df$TRACE[grepl("black|african|aa", df$TRACEC, ignore.case = T)] <- 2
+      df$TRACE[grepl("asian", df$TRACEC, ignore.case = T) & !grepl("caucasian", df$TRACEC, ignore.case=T)] <- 3
+      df$TRACE[grepl("alaskan|native", df$TRACEC, ignore.case = T)] <- 4
+      df$TRACE[grepl("hawa|pacific|island", df$TRACEC, ignore.case = T)] <- 5
+      df$TRACE[grepl("other", df$TRACEC, ignore.case = T)] <- 6
+      df$TRACE[grepl("unknown", df$TRACEC, ignore.case = T)] <- 7}
     else if (i=="NETHNICC") {
       df$NETHNIC[grepl("not", df$NETHNICC, ignore.case = T)] <- 0
       df$NETHNIC[grepl("his", df$NETHNICC, ignore.case = T) & !grepl("not", df$NETHNICC, ignore.case=T)] <- 1
       df$NETHNIC[grepl("unk", df$NETHNICC, ignore.case = T)] <- 2}
+    else if (i=="TETHNICC") {
+      df$TETHNIC[grepl("not", df$TETHNICC, ignore.case = T)] <- 0
+      df$TETHNIC[grepl("his", df$TETHNICC, ignore.case = T) & !grepl("not", df$TETHNICC, ignore.case=T)] <- 1
+      df$TETHNIC[grepl("unk", df$TETHNICC, ignore.case = T)] <- 2}
     else {
       df[,name] <- match(unlist(df[, i]), sort(unique(unlist(df[, i]))))
       if(length(unique(df[, name]))==2) {df[, name] <- df[, name]-1}}}

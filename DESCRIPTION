@@ -1,7 +1,7 @@
 Package: apmx
 Type: Package
 Title: Automated Approach to PK and PKPD Dataset Assembly
-Version: 0.1.0
+Version: 0.1.1
 Author: c(person(given = "Stephen",
            family = "Amori", 
            role = c("aut", "cre"),
@@ -30,3 +30,5 @@ Imports: dplyr, tidyr, purrr, this.path, flextable, officer, tidyselect, utils
 RoxygenNote: 7.2.0
 URL: https://github.com/stephen-amori/apmx
 BugReports: https://github.com/stephen-amori/apmx/issues
+Depends: 
+    R (>= 2.10)
