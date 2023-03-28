@@ -62,7 +62,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
       stop(paste0(i, " missing in ex for at least 1 row."))}}
 
   ex <- ex %>%
-    dplyr::arrange(USUBJID, DTIM, NDAY, TPT)
+    dplyr::arrange(USUBJID, NDAY, TPT)
 
   ex.nonmem <- c()
   ex.col.c <- c()
@@ -474,10 +474,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
                   LDOSE1 = as.POSIXct(LDOSE1, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                   LDOSE2 = as.POSIXct(LDOSE2, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                   ATFD = as.numeric(difftime(DTIM, FDOSE, units=time.units)), #DTIM - FDOSE
-                  ATLD = dplyr::case_when(DTIM >= LDOSE2 ~ as.numeric(difftime(DTIM, LDOSE2, units=time.units)), #DTIM - LDOSE2 if after last dose of previous dose event
-                                          is.na(II) ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)), #no additional doses
-                                          ATFD<=0 ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)), #pre-dose records
-                                          TRUE ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)) %% II), #remainder of DTIM - LDOSE1 if taken during the dosing interval
+                  ATLD = ifelse(is.na(ATFD), NA,
+                                dplyr::case_when(DTIM >= LDOSE2 ~ as.numeric(difftime(DTIM, LDOSE2, units=time.units)), #DTIM - LDOSE2 if after last dose of previous dose event
+                                                 is.na(II) ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)), #no additional doses
+                                                 ATFD<=0 ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)), #pre-dose records
+                                                 TRUE ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)) %% II)), #remainder of DTIM - LDOSE1 if taken during the dosing interval
                   NTLD = dplyr::case_when(NTFD==-999 ~ -999,
                                           DTIM >= LDOSE2 ~ NTFD-NDOSE2,
                                           is.na(II) ~ NTFD-NDOSE1,
@@ -503,21 +504,33 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
         dplyr::arrange(USUBJID, NTFD, EVID) %>%
         dplyr::group_by(USUBJID, NDAY) %>%
         dplyr::mutate(PCATFD = ifelse(EVID==0, ATFD, NA),
-                      PCNTLD = ifelse(EVID==0 & is.na(ATFD), NTLD, NA),
+                      PCTPT = ifelse(EVID==0 & is.na(ATFD), TPT, NA),
                       PCDTIM = ifelse(EVID==0, as.character(DTIM), NA)) %>%
-        tidyr::fill(PCATFD, PCNTLD, PCDTIM, .direction="updown") %>%
+        tidyr::fill(PCATFD, PCTPT, PCDTIM, .direction="updown") %>%
         dplyr::ungroup() %>%
-        dplyr::mutate(IMPEX = ifelse(EVID==1 & is.na(DTIM), 1, IMPEX),
+        dplyr::mutate(IMPEX = case_when(EVID==1 & is.na(DTIM) ~ 1,
+                                        EVID==1 & is.na(IMPEX) ~ 0,
+                                        TRUE ~ IMPEX),
                       PCDTIM = as.POSIXct(PCDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
-                      IMPDTIM = ifelse(EVID==1 & is.na(DTIM), as.character(PCDTIM-PCNTLD*ifelse(time.units=="days", 24*60*60, 60*60)), NA),
-                      ATFD = dplyr::case_when(EVID==1 & is.na(ATFD) & is.na(PCATFD) ~ NTFD,
-                                              EVID==1 & is.na(ATFD) ~ PCATFD-PCNTLD,
+                      IMPDTIM = ifelse(EVID==1 & is.na(DTIM), as.character(PCDTIM-PCTPT*ifelse(time.units=="days", 24*60*60, 60*60)), NA),
+                      IMPFEX = ifelse(is.na(FDOSE), 1, 0),
+                      FDOSE = ifelse(is.na(FDOSE) & EVID==1 & NTFD==0, as.character(IMPDTIM), as.character(FDOSE))) %>%
+        dplyr::group_by(USUBJID) %>%
+        tidyr::fill(FDOSE, .direction="downup") %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(FDOSE = as.POSIXct(FDOSE, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
+                      IMPDTIM = as.POSIXct(IMPDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
+                      ATFD = dplyr::case_when(!is.na(IMPDTIM) & is.na(ATFD) ~ as.numeric(difftime(IMPDTIM, FDOSE, units=time.units)),
+                                              EVID==1 & is.na(ATFD) & is.na(PCATFD) & !is.na(FDOSE) ~ as.numeric(difftime(DTIM, FDOSE, units=time.units)),
+                                              EVID==1 & is.na(ATFD) & is.na(PCATFD) ~ NTFD,
+                                              EVID==1 & is.na(ATFD) ~ PCATFD-PCTPT,
                                               TRUE ~ ATFD),
                       ATLD = ifelse(EVID==1 & is.na(ATLD), 0, ATLD)) %>%
         dplyr::mutate(EXATFD = ifelse(EVID==1, ATFD, NA),
-                      EXNTFD = ifelse(EVID==1, NTFD, NA)) %>%
+                      EXNTFD = ifelse(EVID==1, NTFD, NA),
+                      IMPDTIM = as.POSIXct(IMPDTIM)) %>%
         dplyr::group_by(USUBJID) %>%
-        tidyr::fill(EXATFD, EXNTFD, IMPDTIM, .direction="downup") %>%
+        tidyr::fill(EXATFD, EXNTFD, IMPDTIM, IMPEX, .direction="downup") %>%
         dplyr::mutate(IMPDV = ifelse(EVID==0 & is.na(DTIM), 1, IMPDV),
                       IMPDTIM = as.POSIXct(IMPDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                       ATFD = dplyr::case_when(EVID==0 & is.na(ATFD) & !is.na(DTIM) ~ as.numeric(difftime(DTIM, IMPDTIM, units=time.units)),
@@ -526,20 +539,13 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
                                               TRUE ~ ATFD),
                       ATLD = dplyr::case_when(EVID==0 & is.na(ATLD) & is.na(EXATFD) ~ NTLD,
                                               EVID==0 & is.na(ATLD) ~ ATFD-EXATFD,
+                                              EVID==0 & IMPEX==1 ~ ATFD-EXATFD,
                                               TRUE ~ ATLD),
-                      NTLD = dplyr::case_when(IMPDV==1 ~ NTFD-EXNTFD,
+                      NTLD = dplyr::case_when(IMPDV==1 | IMPFEX==1 | IMPEX==1 ~ NTFD-EXNTFD,
                                               TRUE ~ NTLD)) %>%
         dplyr::ungroup() %>%
-        dplyr::arrange(USUBJID, EVID) %>%
-        dplyr::group_by(USUBJID, EVID) %>%
-        dplyr::mutate(IMPFEX = ifelse(is.na(FDOSE), 1, 0),
-                      FDOSE = ifelse(is.na(FDOSE) & EVID==1 & NTFD==0, as.character(IMPDTIM), as.character(FDOSE))) %>%
-        dplyr::group_by(USUBJID) %>%
-        tidyr::fill(FDOSE, .direction="downup") %>%
-        dplyr::ungroup() %>%
-        dplyr::mutate(IMPFEX = ifelse(IMPFEX==1 & is.na(FDOSE), 0, IMPFEX),
-                      FDOSE = as.POSIXct(FDOSE, tz="UTC", format="%Y-%m-%d %H:%M:%S")) %>%
-        dplyr::select(-PCATFD, -PCNTLD, -EXATFD, -EXNTFD, -IMPDTIM) %>%
+        #dplyr::mutate(IMPFEX = ifelse(IMPFEX==1 & is.na(FDOSE), 0, IMPFEX)) %>%
+        dplyr::select(-PCATFD, -PCTPT, -EXATFD, -EXNTFD, -IMPDTIM) %>%
         dplyr::arrange(USUBJID, ATFD, EVID, CMT)}}
 
   ###DOSE AND OBSERVATION CALCULATIONS###
