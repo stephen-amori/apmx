@@ -4,7 +4,14 @@
 \alias{pk_define}
 \title{Create definition file from published dataset}
 \usage{
-pk_define(file, project, variable.list, template)
+pk_define(
+  file,
+  project,
+  variable.list,
+  template,
+  font = "Times New Roman",
+  size = 9
+)
 }
 \arguments{
 \item{file}{filepath of PK(PD) dataset}
@@ -14,6 +21,10 @@ pk_define(file, project, variable.list, template)
 \item{variable.list}{filepath of variable definition csv dataset}
 
 \item{template}{filepath of docx definition file template}
+
+\item{font}{font for table contents}
+
+\item{size}{font size for table contents}
 }
 \value{
 NA

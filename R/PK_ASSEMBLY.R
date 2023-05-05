@@ -5,7 +5,6 @@
 #' @param pd pd event dataframe
 #' @param sl.cov subject-level covarite dataframe
 #' @param tv.cov time-varying covariate dataframe
-#' @param other other event dataframe
 #' @param time.units units for time attributes
 #' @param cycle.length cycle length
 #' @param na value for missing numeric items
@@ -18,19 +17,20 @@
 #' @param DDV change from baseline pd attribute
 #' @param PDV percent change from baseline pd attribute
 #' @param sparse threshold for sparse sampling
+#' @param demo.map toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables
 #' @param tv.cov.fill time-varying covariate fill direction
-#' @param col.order column order
+#' @param keep.other filter to keep or remove other events, EVID = 2
 #'
 #' @return PK(PD) dataset
 #' @export
-pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
+pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                      time.units="days", cycle.length=NA, na=-999,
                      time.rnd=F, amt.rnd=F, dv.rnd=F, cov.rnd=F,
                      impute=NA, BDV=F, DDV=F, PDV=F, sparse=3,
-                     tv.cov.fill = "downup", col.order=NA) {
+                     demo.map = T, tv.cov.fill = "downup", keep.other=T) {
 
 
-  func.version <- "0.1.0"
+  func.version <- "0.1.2"
 
   ###EX QC###
   cdisc.cols.ex <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",
@@ -267,7 +267,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
       stop("sl.cov has duplicate USUBJID rows.")}
 
     for (i in colnames(sl.cov)[2:ncol(sl.cov)]) {
-      if (i %in% c(colnames(ex), colnames(pc), colnames(pd), colnames(other))) {
+      if (i %in% c(colnames(ex), colnames(pc), colnames(pd))) {
         stop(paste0(i, " column is duplicated in sl.cov and another dataset. Please include this column in one dataset only."))}}
 
     missing <- c()
@@ -302,7 +302,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
       tidyr::fill(tidyselect::all_of(covs), .direction="downup") %>%
       dplyr::ungroup() %>%
       dplyr::distinct() %>%
-      dplyr::mutate(EVID = 2)
+      dplyr::mutate(EVID = 2,
+                    DOMAIN = "TVCOV")
 
     if(FALSE %in% grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}", tv.cov$DTIM[!is.na(tv.cov$DTIM)])) {
       if(FALSE %in% grepl("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", tv.cov$DTIM[!is.na(tv.cov$DTIM)])) {
@@ -317,8 +318,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
                                             grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%d")))
 
     for (i in colnames(tv.cov)) {
-      if (i %in% c(colnames(ex), colnames(pc), colnames(pd), colnames(other)) & !i %in% c("USUBJID", "DTIM", "EVID")) {
-        stop(paste0(i, " column is duplicated in sl.cov and another dataset. Please include this column in one dataset only."))}}
+      if (i %in% c(colnames(ex), colnames(pc), colnames(pd)) & !i %in% c("USUBJID", "DTIM", "EVID", "DOMAIN")) {
+        stop(paste0(i, " column is duplicated in tl.cov and another dataset. Please include this column in one dataset only."))}}
 
     check <- tv.cov %>%
       dplyr::mutate(Check = paste0(USUBJID, DTIM))
@@ -332,53 +333,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
       else {(missing <- c(missing, i))}}
 
     if (length(missing)>=1) {warning(paste0("The following USUBJID(s) have PKPD events but are not in tv.cov: ", paste0(unique(missing), collapse = ", ")))}}
-
-  ###OTHER QC###
-  other.col.c <- c()
-  other.col.n <- c()
-
-  if (is.data.frame(other)) {
-    req.cols <- c("USUBJID", "DTIM", "NDAY", "TPT", "ODV", "LLOQ",
-                  "CMT", "VISIT", "TPTC", "DVID", "DVIDU")
-    for (i in req.cols) {
-      if (!any(i %in% colnames(other))) {
-        stop(paste0("Column ", i, " is missing from the other-event dataset."))}
-
-      if (i %in% c("NDAY", "TPT", "ODV", "CMT") & !is.numeric(unlist(other[, i]))) { #if a column is numeric
-        stop(paste0("Column ", i, " in other is not numeric type."))}
-
-      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(other[, i]))) { #if a column is character
-        stop(paste0("Column ", i, " in other is not character type."))}}
-
-    for (i in colnames(other)) {
-      if (!any(i %in% req.cols)) {
-        if(is.character(unlist(other[, i])) & i!="DOMAIN") {other.col.c <- c(other.col.c, i)}
-        else if (i!="DOMAIN") {other.col.n <- c(other.col.n, i)}}}
-
-    if(!any("EVID" %in% colnames(other))) {
-      other <- as.data.frame(other) %>%
-        dplyr::mutate(EVID = 2)} #add EVID for other events
-
-    if(!any("DOMAIN" %in% colnames(other))) {
-      other <- as.data.frame(other) %>%
-        dplyr::mutate(DOMAIN = "OTHER")}
-
-    if(FALSE %in% grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}", other$DTIM[!is.na(other$DTIM)])) {
-      if(FALSE %in% grepl("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", other$DTIM[!is.na(other$DTIM)])) {
-        stop("DTIM in other is not ISO 8601 format.")}}
-
-    other <- other %>%
-      dplyr::mutate(DTIM = dplyr::case_when(grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%dT%H:%M:%S"),
-                                            grepl("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
-                                            grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%dT%H:%M"),
-                                            grepl("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%d %H:%M"),
-                                            grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%d")))
-
-    other <- other %>%
-      dplyr::mutate(IMPDV = ifelse(!"IMPDV" %in% colnames(other), 0, IMPDV))
-
-    if(0 %in% other[, "NDAY"]) {
-      stop("NDAY in other has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.")}}
 
   ###TIME.UNITS QC###
   if (!any(time.units %in% c("days", "hours"))) {
@@ -428,7 +382,17 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
 
   if(!is.na(impute)) {
     if (!(impute %in% c(1, 2))) {
-      stop("impute parameter must be method 1, method 2, or NA")}}
+      stop("impute parameter must be method 1, method 2, or NA.")}}
+
+  if(is.na(demo.map)) {
+    stop("demo.map parameter must be TRUE or FALSE.")}
+
+  if(!is.na(demo.map)) {
+    if(!demo.map %in% c(T, F)) {
+      stop("demo.map parameter must be TRUE or FALSE.")}}
+
+  if(!is.logical(keep.other)) {
+    stop("keep.other parameter must be TRUE or FALSE.")}
 
   ###BIND EVENTS TOGETHER###
   df <- ex
@@ -441,11 +405,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
   if(is.data.frame(pd)) {
     df <- df %>%
       dplyr::bind_rows(pd) %>% #add pd events
-      dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)}
-
-  if(is.data.frame(other)) {
-    df <- df %>%
-      dplyr::bind_rows(other) %>%
       dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)}
 
   ###ACTUAL + NOMINAL TIME CALCULATIONS###
@@ -508,9 +467,9 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
                       PCDTIM = ifelse(EVID==0, as.character(DTIM), NA)) %>%
         tidyr::fill(PCATFD, PCTPT, PCDTIM, .direction="updown") %>%
         dplyr::ungroup() %>%
-        dplyr::mutate(IMPEX = case_when(EVID==1 & is.na(DTIM) ~ 1,
-                                        EVID==1 & is.na(IMPEX) ~ 0,
-                                        TRUE ~ IMPEX),
+        dplyr::mutate(IMPEX = dplyr::case_when(EVID==1 & is.na(DTIM) ~ 1,
+                                               EVID==1 & is.na(IMPEX) ~ 0,
+                                               TRUE ~ IMPEX),
                       PCDTIM = as.POSIXct(PCDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                       IMPDTIM = ifelse(EVID==1 & is.na(DTIM), as.character(PCDTIM-PCTPT*ifelse(time.units=="days", 24*60*60, 60*60)), NA),
                       IMPFEX = ifelse(is.na(FDOSE), 1, 0),
@@ -644,15 +603,18 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
       if (name=="USUBJID") {next}
       if (name=="STUDY") {
         if(!is.character(unlist(sl.cov[,name]))) {stop("STUDY in sl.cov must be character type.")}}
-      if (name=="SEX") {
+      if (name=="SEX" & demo.map==T) {
         sl.cov[, "NSEX"] <- NA
         sl.cov$NSEX[grepl("m|male", sl.cov$SEX, ignore.case = T)] <- 0
         sl.cov$NSEX[grepl("f|female", sl.cov$SEX, ignore.case = T)] <- 1
         sl.cov$NSEX[grepl("unk", sl.cov$SEX, ignore.case = T)] <- 2
+        sl.cov$NSEX[grepl("other", sl.cov$SEX, ignore.case = T)] <- 3
         s.cat.cov.n <- c(s.cat.cov.n, "NSEX")
         s.cat.cov.c <- c(s.cat.cov.c, "NSEXC")
-        colnames(sl.cov)[i] <- "NSEXC"}
-      else if (name=="RACE") {
+        colnames(sl.cov)[i] <- "NSEXC"
+        if(length(sort(unique(sl.cov$NSEX)))!=length(sort(unique(sl.cov$NSEXC)))) {
+          warning("At least one NSEXC failed to map. Consider setting demo.map = FALSE.")}}
+      else if (name=="RACE" & demo.map==T) {
         sl.cov[, "NRACE"] <- NA
         sl.cov$NRACE[grepl("white|caucasian", sl.cov$RACE, ignore.case = T)] <- 1
         sl.cov$NRACE[grepl("black|african|aa", sl.cov$RACE, ignore.case = T)] <- 2
@@ -664,15 +626,20 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
         sl.cov$NRACE[grepl("unknown", sl.cov$RACE, ignore.case = T)] <- 8
         s.cat.cov.n <- c(s.cat.cov.n, "NRACE")
         s.cat.cov.c <- c(s.cat.cov.c, "NRACEC")
-        colnames(sl.cov)[i] <- "NRACEC"}
-      else if (name=="ETHNIC") {
+        colnames(sl.cov)[i] <- "NRACEC"
+        if(length(sort(unique(sl.cov$NRACE)))!=length(sort(unique(sl.cov$NRACEC)))) {
+          warning("At least one NRACE failed to map. Consider setting demo.map = FALSE.")}}
+      else if (name=="ETHNIC" & demo.map==T) {
         sl.cov[, "NETHNIC"] <- NA
         sl.cov$NETHNIC[grepl("not", sl.cov$ETHNIC, ignore.case = T)] <- 0
         sl.cov$NETHNIC[grepl("his", sl.cov$ETHNIC, ignore.case = T) & !grepl("not", sl.cov$ETHNIC, ignore.case=T)] <- 1
         sl.cov$NETHNIC[grepl("unk", sl.cov$ETHNIC, ignore.case = T)] <- 2
+        sl.cov$NETHNIC[grepl("other", sl.cov$ETHNIC, ignore.case = T)] <- 3
         s.cat.cov.n <- c(s.cat.cov.n, "NETHNIC")
         s.cat.cov.c <- c(s.cat.cov.c, "NETHNICC")
-        colnames(sl.cov)[i] <- "NETHNICC"}
+        colnames(sl.cov)[i] <- "NETHNICC"
+        if(length(sort(unique(sl.cov$NETHNIC)))!=length(sort(unique(sl.cov$NETHNICC)))) {
+          warning("At least one NETHNIC failed to map. Consider setting demo.map = FALSE.")}}
       else if (is.numeric(unlist(sl.cov[,name]))){
         if (nchar(name)>7) {stop(paste(name, "column name in sl.cov must be 7 characters or fewer."))}
         s.cont.cov <- c(s.cont.cov, paste0("B",name))
@@ -693,16 +660,19 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
   if (is.data.frame(tv.cov)==TRUE) {
     for (i in 1:length(colnames(tv.cov))) {
       name = colnames(tv.cov)[i]
-      if (name %in% c("USUBJID", "DTIM", "EVID")) {next}
-      else if (name=="SEX") {
+      if (name %in% c("USUBJID", "DTIM", "EVID", "DOMAIN")) {next}
+      else if (name=="SEX" & demo.map==T) {
         tv.cov[, "TSEX"] <- NA
         tv.cov$TSEX[grepl("m|male", tv.cov$SEX, ignore.case = T)] <- 0
         tv.cov$TSEX[grepl("f|female", tv.cov$SEX, ignore.case = T)] <- 1
         tv.cov$TSEX[grepl("unk|not|miss", tv.cov$SEX, ignore.case = T)] <- 2
+        tv.cov$TSEX[grepl("other", tv.cov$SEX, ignore.case = T)] <- 3
         t.cat.cov.n <- c(t.cat.cov.n, "TSEX")
         t.cat.cov.c <- c(t.cat.cov.c, "TSEXC")
-        colnames(tv.cov)[i] <- "TSEXC"}
-      else if (name=="TRACE") {
+        colnames(tv.cov)[i] <- "TSEXC"
+        if(length(sort(unique(sl.cov$TSEX)))!=length(sort(unique(sl.cov$TSEXC)))) {
+          warning("At least one TSEXC failed to map. Consider setting demo.map = FALSE.")}}
+      else if (name=="TRACE" & demo.map==T) {
         tv.cov[, "TRACE"] <- NA
         tv.cov$TRACE[grepl("white|caucasian", tv.cov$RACE, ignore.case = T)] <- 1
         tv.cov$TRACE[grepl("black|african|aa", tv.cov$RACE, ignore.case = T)] <- 2
@@ -714,15 +684,20 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
         tv.cov$TRACE[grepl("unknown", tv.cov$RACE, ignore.case = T)] <- 8
         t.cat.cov.n <- c(t.cat.cov.n, "TRACE")
         t.cat.cov.c <- c(t.cat.cov.c, "TRACEC")
-        colnames(sl.cov)[i] <- "TRACEC"}
-      else if (name=="ETHNIC") {
+        colnames(sl.cov)[i] <- "TRACEC"
+        if(length(sort(unique(sl.cov$TRACE)))!=length(sort(unique(sl.cov$TRACEC)))) {
+          warning("At least one TRACE failed to map. Consider setting demo.map = FALSE.")}}
+      else if (name=="ETHNIC" & demo.map==T) {
         tv.cov[, "TETHNIC"] <- NA
         tv.cov$TETHNIC[grepl("not", tv.cov$ETHNIC, ignore.case = T)] <- 0
         tv.cov$TETHNIC[grepl("his", tv.cov$ETHNIC, ignore.case = T)] <- 1
         tv.cov$TETHNIC[grepl("unk", tv.cov$ETHNIC, ignore.case = T)] <- 2
+        tv.cov$TETHNIC[grepl("other", tv.cov$ETHNIC, ignore.case = T)] <- 3
         t.cat.cov.n <- c(t.cat.cov.n, "TETHNIC")
         t.cat.cov.c <- c(t.cat.cov.c, "TETHNICC")
-        colnames(sl.cov)[i] <- "TETHNICC"}
+        colnames(sl.cov)[i] <- "TETHNICC"
+        if(length(sort(unique(sl.cov$TETHNIC)))!=length(sort(unique(sl.cov$TETHNICC)))) {
+          warning("At least one TETHNIC failed to map. Consider setting demo.map = FALSE.")}}
       else if (is.numeric(unlist(tv.cov[,name]))){
         if (nchar(name)>7) {stop(paste(name, "column name in tv.cov must be 7 characters or fewer."))}
         t.cont.cov <- c(t.cont.cov, paste0("T",name))
@@ -853,8 +828,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
     dplyr::ungroup()
 
   ###FIX NA ITEMS###
-  for (i in c("NTFD", "NTLC", "NTLD", ex.col.n, pc.col.n, pd.col.n, other.col.n, cat.cov.n, cont.cov)) {
-    df[is.na(df[, i]) | df[, i]==-999, i] <- na}
+  for (i in c("NTFD", "NTLC", "NTLD", ex.col.n, pc.col.n, pd.col.n, cat.cov.n, cont.cov)) {
+    df[(is.na(df[, i]) | df[, i]==-999) & df$EVID!=2, i] <- na}
 
   ###ROUDING###
   if(is.numeric(time.rnd)) {
@@ -928,25 +903,29 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
                   DTIM = as.character(DTIM),
                   FDOSE = as.character(FDOSE),
                   VERSN = func.version,
-                  BUILDD = Sys.Date()) %>%
-    dplyr::mutate_at(.vars = c(ex.col.c, pc.col.c, pd.col.c, other.col.c, cat.cov.c),
+                  BUILD = Sys.Date(),
+                  NSTUDY = ifelse(NSTUDY==na, NA, NSTUDY)) %>%
+    dplyr::group_by(USUBJID) %>%
+    tidyr::fill(NSTUDY, NSTUDYC, .direction="downup") %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(NSTUDY = ifelse(is.na(NSTUDY), na, NSTUDY)) %>%
+    dplyr::mutate_at(.vars = c(ex.col.c, pc.col.c, pd.col.c, cat.cov.c),
                      .funs = function(x) toupper(x))
 
-  if (is.na(col.order)) {
-    df <- df %>%
-      dplyr::select(C, tidyselect::all_of(stud.col.n), SUBJID, ID, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY, TPT,
-                    EVID, MDV, CMT, AMT, tidyselect::all_of(ex.nonmem), ODV, LDV, tidyselect::all_of(pd.dvs),
-                    BLQ, LLOQ, tidyselect::all_of(ex.col.n), tidyselect::all_of(pc.col.n), tidyselect::all_of(pd.col.n),
-                    tidyselect::all_of(other.col.n), tidyselect::all_of(cat.cov.n), tidyselect::all_of(cont.cov), tidyselect::all_of(flags),
-                    LINE, USUBJID, tidyselect::all_of(stud.col.c), VISIT, TPTC, DOMAIN, DVID, DVIDU, TIMEU,
-                    tidyselect::all_of(ex.col.c), tidyselect::all_of(pc.col.c), tidyselect::all_of(pd.col.c), tidyselect::all_of(other.col.c),
-                    tidyselect::all_of(cat.cov.c), DTIM, FDOSE, VERSN, BUILDD)}
+  df <- df %>%
+    dplyr::select(C, tidyselect::all_of(stud.col.n), SUBJID, ID, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY, TPT,
+                  EVID, MDV, CMT, AMT, tidyselect::all_of(ex.nonmem), ODV, LDV, tidyselect::all_of(pd.dvs),
+                  BLQ, LLOQ, tidyselect::all_of(ex.col.n), tidyselect::all_of(pc.col.n), tidyselect::all_of(pd.col.n),
+                  tidyselect::all_of(cat.cov.n), tidyselect::all_of(cont.cov), tidyselect::all_of(flags),
+                  LINE, USUBJID, tidyselect::all_of(stud.col.c), VISIT, TPTC, DOMAIN, DVID, DVIDU, TIMEU,
+                  tidyselect::all_of(ex.col.c), tidyselect::all_of(pc.col.c), tidyselect::all_of(pd.col.c),
+                  tidyselect::all_of(cat.cov.c), DTIM, FDOSE, VERSN, BUILD)
 
-  else {
-    for (i in col.order) {
-      if (!(i %in% colnames(df))) {
-        stop(paste(i, "in col.order is not found in the derived PK(PD) dataset."))}}
-    df <- df[, col.order]}
+  ###FILTER OTHER EVENTS###
+  if (keep.other==F) {
+    df <- df %>%
+      dplyr::filter(EVID!=2) %>%
+      dplyr::mutate(LINE = dplyr::row_number())}
 
   ###WARNINGS###
   check <- colnames(df)[nchar(colnames(df))>8]
@@ -978,11 +957,14 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA, other=NA,
 #' @param direction fill direction for time-varying covariates
 #' @param cov.rnd covariate rounding parameter
 #' @param na value to replace NA numeric covariates
+#' @param demo.map toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables
+#' @param keep.other filter to keep or remove other events, EVID = 2
 #'
 #' @return PK(PD) dataset with additional covariates
 #' @export
 cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
-                      direction="downup", cov.rnd=NA, na=-999) {
+                      direction="downup", cov.rnd=NA, na=-999,
+                      demo.map=T, keep.other=T) {
 
 
   ###QC id.by###
@@ -1008,19 +990,27 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
 
   ###QC cov.rnd###
   if (!is.na(cov.rnd)) {
-    if (!is.numeric(cov.rnd)) {stop("cov.rnd must be an integer or NA.")}
-    if (cov.rnd %% 1 != 0) {stop("cov.rnd must be an integer or NA.")}}
+    if (!is.numeric(cov.rnd)) {stop("cov.rnd parameter must be an integer or NA.")}
+    if (cov.rnd %% 1 != 0) {stop("cov.rnd parameter must be an integer or NA.")}}
 
-  ###QC cov.rnd###
+  ###QC na###
   if (!is.na(na)) {
-    if (!is.numeric(na)) {stop("na must be NA or numeric")}}
+    if (!is.numeric(na)) {stop("na parameter must be NA or numeric,")}}
+
+  ###QC demo map###
+  if (is.na(demo.map)) {stop("demo.map parameter must be TRUE or FALSE.")}
+  if (!is.na(demo.map)) {
+    if(!is.logical(demo.map)) {stop("demo.map parameter must be TRUE or FALSE.")}}
+
+  ###QC keep.other###
+  if (!is.logical(keep.other)) {stop("keep.other parameter must be TRUE or FALSE.")}
 
   ###QC df###
   req.cols <- c(id.by) #always required
   if(!is.na(time.by)) {req.cols <- c(req.cols, time.by)} #time.by is optional
 
   for (i in req.cols) {
-    if (!i %in% colnames(cov)) { #make sure req.col are in df
+    if (!i %in% colnames(df)) { #make sure req.col are in df
       stop(paste(i, "column not in PKPD dataframe. Cannot merge with covariate dataframe."))}}
 
   if (!is.na(time.by)) {
@@ -1102,17 +1092,20 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   for (i in 1:length(colnames(cov))) {
     name = colnames(cov)[i]
     if (name %in% c(id.by, time.by)) {next}
-    if (name=="SEX") {
+    if (name=="SEX" & demo.map==T) {
       if (is.na(time.by)) {nname <- paste0("N", name)}
       else {nname <- paste0("T", name)}
       cov[, nname] <- NA
       cov[grepl("m|male", cov$SEX, ignore.case = T), nname] <- 0
       cov[grepl("f|female", cov$SEX, ignore.case = T), nname] <- 1
       cov[grepl("unk", cov$SEX, ignore.case = T), nname] <- 2
+      cov[grepl("other", sl.cov$SEX, ignore.case = T), nname] <- 3
       cat.cov.n <- c(cat.cov.n, nname)
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
-      colnames(cov)[i] <- paste0(nname, "C")}
-    else if (name=="RACE") {
+      colnames(cov)[i] <- paste0(nname, "C")
+      if(length(sort(unique(unlist(cov[, nname]))))!=length(sort(unique(unlist(cov[, paste0(nname, "C")]))))) {
+        warning(paste0("At least one ", nname, " failed to map. Consider setting demo.map = FALSE."))}}
+    else if (name=="RACE" & demo.map==T) {
       if (is.na(time.by)) {nname <- paste0("N", name)}
       else {nname <- paste0("T", name)}
       cov[, nname] <- NA
@@ -1126,17 +1119,22 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
       cov[grepl("unknown", cov$RACE, ignore.case = T), nname] <- 8
       cat.cov.n <- c(cat.cov.n, nname)
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
-      colnames(cov)[i] <- paste0(nname, "C")}
-    else if (name=="ETHNIC") {
+      colnames(cov)[i] <- paste0(nname, "C")
+      if(length(sort(unique(unlist(cov[, nname]))))!=length(sort(unique(unlist(cov[, paste0(nname, "C")]))))) {
+        warning(paste0("At least one ", nname, " failed to map. Consider setting demo.map = FALSE."))}}
+    else if (name=="ETHNIC" & demo.map==T) {
       if (is.na(time.by)) {nname <- paste0("N", name)}
       else {nname <- paste0("T", name)}
       cov[, nname] <- NA
       cov[grepl("not", cov$ETHNIC, ignore.case = T), nname] <- 0
       cov[grepl("his", cov$ETHNIC, ignore.case = T) & !grepl("not", cov$ETHNIC, ignore.case=T), nname] <- 1
       cov[grepl("unk", cov$ETHNIC, ignore.case = T), nname] <- 2
+      cov[grepl("other", cov$ETHNIC, ignore.case = T), nname] <- 3
       cat.cov.n <- c(cat.cov.n, nname)
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
-      colnames(cov)[i] <- paste0(nname, "C")}
+      colnames(cov)[i] <- paste0(nname, "C")
+      if(length(sort(unique(unlist(cov[, nname]))))!=length(sort(unique(unlist(cov[, paste0(nname, "C")]))))) {
+        warning(paste0("At least one ", nname, " failed to map. Consider setting demo.map = FALSE."))}}
     else if (is.numeric(unlist(cov[,name]))){
       if (nchar(name)>7) {stop(paste(name, "column name in cov must be 7 characters or fewer."))}
       if (is.na(time.by)) {
@@ -1152,7 +1150,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
       cat.cov.n <- c(cat.cov.n, paste0(nname))
       cov[, nname] <- match(unlist(cov[,name]), sort(unique(unlist(cov[,name]))))
-      if(length(unique(cov[, name]))==2) {
+      if(length(unique(unlist(cov[, nname])))==2) {
         cov[, nname] <- cov[, nname]-1}
       colnames(cov)[i] <- paste0(nname, "C")}}
 
@@ -1165,13 +1163,17 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
 
   else {
     cov <- cov %>%
-      dplyr::mutate(EVID = 2) #add keep flag to cov
+      dplyr::mutate(EVID = 2,
+                    DOMAIN = "TVCOV",
+                    KEEP = 0,
+                    BUILD = Sys.Date())
 
     if (time.by=="DTIM") {
       if (!"ATFD" %in% colnames(df)) {
         stop(paste0("If merging by DTIM, ATFD must be included in df."))}
 
       df <- df %>%
+        dplyr::mutate(KEEP = 1) %>%
         dplyr::bind_rows(cov) %>%
         dplyr::arrange(.data[[id.by]], .data[[time.by]]) %>%
         dplyr::group_by(.data[[id.by]]) %>%
@@ -1186,17 +1188,22 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
                                               TRUE ~ ATFD)) %>%
         dplyr::arrange(USUBJID, ATFD) %>%
         dplyr::group_by(USUBJID) %>%
-        tidyr::fill(ID, tidyselect::all_of(covs), .direction=direction) %>%
+        tidyr::fill(ID, SUBJID, NSTUDY, NSTUDYC, TIMEU, tidyselect::all_of(covs), .direction=direction) %>%
         dplyr::ungroup() %>%
         dplyr::arrange(ID, ATFD, CMT, EVID)}
 
     else {
       df <- df %>%
+        dplyr::mutate(KEEP = 1) %>%
         dplyr::bind_rows(cov) %>%
         dplyr::arrange(.data[[id.by]], .data[[time.by]], -EVID) %>% #get in proper order
         dplyr::group_by(.data[[id.by]]) %>% #group
-        tidyr::fill(ID, tidyselect::all_of(covs), .direction=direction) %>%
+        tidyr::fill(ID, SUBJID, NSTUDY, NSTUDYC, TIMEU, tidyselect::all_of(covs), .direction=direction) %>%
         dplyr::ungroup() %>%
+        dplyr::mutate(ATFD = dplyr::case_when(KEEP==0 & time.by=="NTFD" ~ NTFD,
+                                              KEEP==0 & time.by=="NDAY" & TIMEU=="days" ~ NDAY-1,
+                                              KEEP==0 & time.by=="NDAY" & TIMEU=="hours" ~ (24*NDAY-1),
+                                              TRUE ~ ATFD)) %>%
         dplyr::arrange(ID, ATFD, CMT, EVID)}}
 
   ###Round covariates###
@@ -1224,6 +1231,17 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   if(!is.null(cont.cov)) {
     df <- df %>%
       dplyr::relocate(tidyselect::all_of(cont.cov), .before="PDOSEF")}
+
+  ###Final filter###
+  if(keep.other==F | time.by %in% c("ATLD", "NTLC", "NTLD")) {
+    df <- df %>%
+      dplyr::filter(KEEP == 1) %>%
+      dplyr::select(-KEEP)}
+
+  else {
+    df <- df %>%
+      dplyr::select(-KEEP) %>%
+      dplyr::mutate(LINE = dplyr::row_number())}
 
   ###Read out updated dataset###
   return(df)}
@@ -1257,10 +1275,13 @@ pk_write <- function(df, file) {
 #' @param project project name
 #' @param variable.list filepath of variable definition csv dataset
 #' @param template filepath of docx definition file template
+#' @param font font for table contents
+#' @param size font size for table contents
 #'
 #' @return NA
 #' @export
-pk_define <- function(file, project, variable.list, template) {
+pk_define <- function(file, project, variable.list, template,
+                      font="Times New Roman", size=9) {
 
   data.dir <- this.path::dirname2(file) #directory of the dataset
 
@@ -1269,6 +1290,11 @@ pk_define <- function(file, project, variable.list, template) {
   data.name <- this.path::basename2(file) #dataset name including extension
 
   if (!grepl(".csv$", data.name)) {stop(paste("filepath must include document name and .csv suffix."))}
+
+  if(!is.numeric(size)) {stop("size parameter must be numeric.")}
+  if(size<=0) {stop("size parameter must be greater than or equal to 0.")}
+
+  if(!is.character(font)) {stop("font parameter must be character font description.")}
 
   ###CREATE DEFINITION FILE###
   df <- utils::read.csv(file, na.strings=".")
@@ -1283,8 +1309,7 @@ pk_define <- function(file, project, variable.list, template) {
     dplyr::mutate(DOMAIN = dplyr::case_when(DOMAIN=="EX" ~ "(Dose)",
                                             DOMAIN=="PC" ~ "(PK)",
                                             DOMAIN=="PD" ~ "(PD)",
-                                            DOMAIN=="ADA" ~ "(ADA)",
-                                            DOMAIN=="OTHER" ~ "(Other)"))
+                                            DOMAIN=="ADA" ~ "(ADA)"))
 
   cmtd <- df[df$EVID==1, c("CMT", "DOMAIN", "DVID", "DVIDU")] %>%
     dplyr::distinct() %>%
@@ -1292,8 +1317,7 @@ pk_define <- function(file, project, variable.list, template) {
     dplyr::mutate(DOMAIN = dplyr::case_when(DOMAIN=="EX" ~ "(Dose)",
                                             DOMAIN=="PC" ~ "(PK)",
                                             DOMAIN=="PD" ~ "(PD)",
-                                            DOMAIN=="ADA" ~ "(ADA)",
-                                            DOMAIN=="OTHER" ~ "(Other)"))
+                                            DOMAIN=="ADA" ~ "(ADA)"))
 
   cmt <- data.frame("Variable" = "CMT",
                     "Values" = c(paste(cmtd$CMT, "=", cmtd$DVID, cmtd$DOMAIN), paste(cmto$CMT, "=", cmto$DVID, cmto$DOMAIN)))
@@ -1447,8 +1471,8 @@ pk_define <- function(file, project, variable.list, template) {
     flextable::border_inner_h(part = "body",
                               border = officer::fp_border(color = "grey", width = 0.1, style="solid")) %>%
     flextable::merge_v(j = c(1, 2, 3, 6, 7), target = c(1, 2, 3, 6, 7), part = "body", combine = T) %>%
-    flextable::font(fontname = "Times New Roman", part = "all") %>%
-    flextable::fontsize(size = 9, part = "all") %>%
+    flextable::font(fontname = font, part = "all") %>%
+    flextable::fontsize(size = size, part = "all") %>%
     flextable::bold(part = "header") %>%
     flextable::width(j = c(3, 4), width = 1.78, unit = "in") %>%
     flextable::width(j = 7, width = 1.5, unit = "in") %>%
@@ -1458,10 +1482,11 @@ pk_define <- function(file, project, variable.list, template) {
 
   ###WRITE DEFINITION FILE TO SERVER###
   tmplt <- officer::read_docx(path=template) %>%
-    officer::body_add_table(define1) %>%
+    flextable::body_add_flextable(define1) %>%
+    #officer::body_end_section_landscape() %>%
     #body_add_par("All NA values and missing character covariates are labeled as .") %>%
     #body_add_par("All missing numeric covariates and nominal times are labeled as -999") %>%
-    officer::headers_replace_all_text("Sponsor", project, warn=F) %>%
+    officer::headers_replace_all_text("Project", project, warn=F) %>%
     officer::headers_replace_all_text("Dataset", paste("Analysis Dataset:", data.name), warn=F) %>%
     print(target = paste0(data.dir, "\\DEFINE_", gsub(".csv", "", data.name), ".docx"))}
 
@@ -1480,7 +1505,7 @@ cov_find <- function(df, cov, type) {
     dplyr::select(-DOSEA, -PDOSEF)
 
   df2 <- df %>%
-    dplyr::select(NSTUDYC, TIMEU:DTIM) %>%
+    dplyr::select(NSTUDY, TIMEU:DTIM) %>%
     dplyr::select(-TIMEU, -DTIM)
 
   if (cov=="categorical") {
@@ -1502,17 +1527,28 @@ cov_find <- function(df, cov, type) {
     else if (type=="character") {stop("continuous covariates must be numeric only")}
     else {stop("type must be numeric or character")}}
 
-  else {stop("cov must be categorical or continuous")}}
+  else if (cov=="other") {
+    if (type=="numeric") {
+      covs <- colnames(df1)[!grepl("^N", colnames(df1)) & !grepl("^T", colnames(df1)) & !grepl("^B", colnames(df1))]
+      return(covs)}
+    else if (type=="character") {
+      covs <- colnames(df2)[!grepl("^N", colnames(df2)) & !grepl("^T", colnames(df2))]
+      return(covs)}
+    else {stop("type must be numeric or character")}}
+
+  else {stop("cov must be categorical,  continuous, or other")}}
 
 
 #' combine study level datasets to form population dataset
 #'
 #' @param df1 original PK(PD) dataset
 #' @param df2 additional PK(PD) dataset
+#' @param demo.map toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables
+#' @param na value for missing numeric items
 #'
 #' @return population PK(PD) dataset
 #' @export
-pk_combine <- function(df1, df2) {
+pk_combine <- function(df1, df2, demo.map=T, na=-999) {
 
   ###QC dataframes###
   if (FALSE %in% (colnames(df1) %in% colnames(df2)) | FALSE %in% (colnames(df2) %in% colnames(df1))) {
@@ -1524,12 +1560,24 @@ pk_combine <- function(df1, df2) {
   if (TRUE %in% (unique(df1$NSTUDYC) %in% unique(df2$NSTUDYC)) | TRUE %in% (unique(df2$NSTUDYC) %in% unique(df1$NSTUDYC))) {
     warning("At least one NSTUDYC exists in both datasets")}
 
+  if (unique(df1$TIMEU)!=unique(df2$TIMEU)) {
+    stop("Time units must be equal between both datasets.")}
+
+  if(is.na(demo.map)) {stop("demo.map parameter must be TRUE or FALSE")}
+  if(!is.na(demo.map)) {
+    if(!is.logical(demo.map)) {stop("demo.map parameter must be TRUE or FALSE")}}
+
+  if(!is.na(na)) {
+    if(!is.numeric(na)) {stop("na parameter must be numeric")}}
+
   cmt1 <- df1 %>%
+    dplyr::filter(EVID!=2) %>%
     dplyr::distinct(DVID, DVIDU, CMT) %>%
     dplyr::arrange(CMT, DVID) %>%
     dplyr::select(CMT, DVID1 = DVID, DVIDU1 = DVIDU)
 
   cmt2 <- df2 %>%
+    dplyr::filter(EVID!=2) %>%
     dplyr::distinct(DVID, DVIDU, CMT) %>%
     dplyr::arrange(CMT, DVID)%>%
     dplyr::select(CMT, DVID2 = DVID, DVIDU2 = DVIDU)
@@ -1557,46 +1605,89 @@ pk_combine <- function(df1, df2) {
                   LINE = dplyr::row_number(),
                   COMBD = Sys.Date())
 
-  ###Redo categorical covariates###
-  cat.cov.n <- cov_find(df, cov="categorical", type="numeric")
-  cat.cov.c <- cov_find(df, cov="categorical", type="character")
+  ###Rearrange covariate columns###
+  cat.cov.n.1 <- cov_find(df1, cov="categorical", type="numeric")
+  cont.cov.n.1 <- cov_find(df1, cov="continuous", type="numeric")
+  oth.cov.n.1 <- cov_find(df1, cov="other", type="numeric")
 
-  for (i in cat.cov.c) {
+  cat.cov.c.1 <- cov_find(df1, cov="categorical", type="character")
+  oth.cov.c.1 <- cov_find(df1, cov="other", type="character")
+
+  cat.cov.n.2 <- cov_find(df2, cov="categorical", type="numeric")
+  cont.cov.n.2 <- cov_find(df2, cov="continuous", type="numeric")
+  oth.cov.n.2 <- cov_find(df2, cov="other", type="numeric")
+
+  cat.cov.c.2 <- cov_find(df2, cov="categorical", type="character")
+  oth.cov.c.2 <- cov_find(df2, cov="other", type="character")
+
+  num.cov <- c(cat.cov.n.1, cat.cov.n.2, cont.cov.n.1, cont.cov.n.2, oth.cov.n.1, oth.cov.n.2)[!duplicated(c(cat.cov.n.1, cat.cov.n.2, cont.cov.n.1, cont.cov.n.2, oth.cov.n.1, oth.cov.n.2))]
+  chr.cov <- c(cat.cov.c.1, cat.cov.c.2, oth.cov.c.1, oth.cov.c.2)[!duplicated(c(cat.cov.c.1, cat.cov.c.2, oth.cov.c.1, oth.cov.c.2))]
+
+  df <- df %>%
+    dplyr::relocate(tidyselect::all_of(num.cov), .after="DOSEA") %>%
+    dplyr::relocate(tidyselect::all_of(chr.cov), .after="TIMEU") %>%
+    dplyr::relocate(NSTUDY, .after="C") %>%
+    dplyr::relocate(NSTUDYC, .after="USUBJID")
+
+  ###Redo categorical covariates###
+  for (i in chr.cov) {
     name <- gsub("C$", "", i)
     if (i=="NSEXC") {
       df$NSEX[grepl("m|male", df$NTSEXC, ignore.case = T)] <- 0
-      df$NSEX[grepl("f|female", df$TSEXC, ignore.case = T)] <- 1
-      df$NSEX[grepl("unk|not|miss", df$TSEXC, ignore.case = T)] <- 2}
+      df$NSEX[grepl("f|female", df$NSEXC, ignore.case = T)] <- 1
+      df$NSEX[grepl("unk", df$NSEXC, ignore.case = T)] <- 2
+      df$NSEX[grepl("other", df$NSEXC, ignore.case=T)] <- 3
+      if(length(sort(unique(df$NSEX)))!=length(sort(unique(df$NSEXC)))) {
+        warning("At least one NSEX failed to map. Consider setting demo.map = FALSE.")}}
     else if (i=="TSEXC") {
       df$TSEX[grepl("m|male", df$TSEXC, ignore.case = T)] <- 0
       df$TSEX[grepl("f|female", df$TSEXC, ignore.case = T)] <- 1
-      df$TSEX[grepl("unk|not|miss", df$TSEXC, ignore.case = T)] <- 2}
+      df$TSEX[grepl("unk", df$TSEXC, ignore.case = T)] <- 2
+      df$TSEX[grepl("other", df$TSEXC, ignore.case = T)] <- 3
+      if(length(sort(unique(df$TSEX)))!=length(sort(unique(df$TSEXC)))) {
+        warning("At least one TSEX failed to map. Consider setting demo.map = FALSE.")}}
     else if (i=="NRACEC") {
       df$NRACE[grepl("white|caucasian", df$NRACEC, ignore.case = T)] <- 1
       df$NRACE[grepl("black|african|aa", df$NRACEC, ignore.case = T)] <- 2
       df$NRACE[grepl("asian", df$NRACEC, ignore.case = T) & !grepl("caucasian", df$NRACEC, ignore.case=T)] <- 3
       df$NRACE[grepl("alaskan|native", df$NRACEC, ignore.case = T)] <- 4
       df$NRACE[grepl("hawa|pacific|island", df$NRACEC, ignore.case = T)] <- 5
-      df$NRACE[grepl("other", df$NRACEC, ignore.case = T)] <- 6
-      df$NRACE[grepl("unknown", df$NRACEC, ignore.case = T)] <- 7}
+      df$NRACE[grepl("multiple|mul", df$NRACEC, ignore.case = T)] <- 6
+      df$NRACE[grepl("other", df$NRACEC, ignore.case = T)] <- 7
+      df$NRACE[grepl("unknown", df$NRACEC, ignore.case = T)] <- 8
+      if(length(sort(unique(df$NRACE)))!=length(sort(unique(df$NRACEC)))) {
+        warning("At least one NRACE failed to map. Consider setting demo.map = FALSE.")}}
     else if (i=="TRACEC") {
       df$TRACE[grepl("white|caucasian", df$TRACEC, ignore.case = T)] <- 1
       df$TRACE[grepl("black|african|aa", df$TRACEC, ignore.case = T)] <- 2
       df$TRACE[grepl("asian", df$TRACEC, ignore.case = T) & !grepl("caucasian", df$TRACEC, ignore.case=T)] <- 3
       df$TRACE[grepl("alaskan|native", df$TRACEC, ignore.case = T)] <- 4
       df$TRACE[grepl("hawa|pacific|island", df$TRACEC, ignore.case = T)] <- 5
-      df$TRACE[grepl("other", df$TRACEC, ignore.case = T)] <- 6
-      df$TRACE[grepl("unknown", df$TRACEC, ignore.case = T)] <- 7}
+      df$TRACE[grepl("multiple|mul", df$TRACEC, ignore.case = T)] <- 6
+      df$TRACE[grepl("other", df$TRACEC, ignore.case = T)] <- 7
+      df$TRACE[grepl("unknown", df$TRACEC, ignore.case = T)] <- 8
+      if(length(sort(unique(df$TRACE)))!=length(sort(unique(df$TRACEC)))) {
+        warning("At least one TRACE failed to map. Consider setting demo.map = FALSE.")}}
     else if (i=="NETHNICC") {
       df$NETHNIC[grepl("not", df$NETHNICC, ignore.case = T)] <- 0
       df$NETHNIC[grepl("his", df$NETHNICC, ignore.case = T) & !grepl("not", df$NETHNICC, ignore.case=T)] <- 1
-      df$NETHNIC[grepl("unk", df$NETHNICC, ignore.case = T)] <- 2}
+      df$NETHNIC[grepl("unk", df$NETHNICC, ignore.case = T)] <- 2
+      df$NETHNIC[grepl("other", df$NETHNICC, ignore.case = T)] <- 3
+      if(length(sort(unique(df$NETHNIC)))!=length(sort(unique(df$NETHNICC)))) {
+        warning("At least one NETHNIC failed to map. Consider setting demo.map = FALSE.")}}
     else if (i=="TETHNICC") {
       df$TETHNIC[grepl("not", df$TETHNICC, ignore.case = T)] <- 0
       df$TETHNIC[grepl("his", df$TETHNICC, ignore.case = T) & !grepl("not", df$TETHNICC, ignore.case=T)] <- 1
-      df$TETHNIC[grepl("unk", df$TETHNICC, ignore.case = T)] <- 2}
-    else {
+      df$TETHNIC[grepl("unk", df$TETHNICC, ignore.case = T)] <- 2
+      df$TETHNIC[grepl("other", df$TETHNICC, ignore.case = T)] <- 3
+      if(length(sort(unique(df$TETHNIC)))!=length(sort(unique(df$TETHNICC)))) {
+        warning("At least one TETHNIC failed to map. Consider setting demo.map = FALSE.")}}
+    else if (!i %in% c("NSEXC", "TSEXC", "NRACEC", "TRACEC", "NETHNICC", "TETHNICC")) {
       df[,name] <- match(unlist(df[, i]), sort(unique(unlist(df[, i]))))
-      if(length(unique(df[, name]))==2) {df[, name] <- df[, name]-1}}}
+      if(length(sort(unique(df[, name])))==2) {df[, name] <- df[, name]-1}}}
+
+  ###FIX NA ITEMS###
+  for (i in c("NTFD", "NTLC", "NTLD", num.cov)) {
+    df[is.na(df[, i]) & df$EVID!=2, i] <- na}
 
   return(df)}

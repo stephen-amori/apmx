@@ -4,12 +4,16 @@
 \alias{pk_combine}
 \title{combine study level datasets to form population dataset}
 \usage{
-pk_combine(df1, df2)
+pk_combine(df1, df2, demo.map = T, na = -999)
 }
 \arguments{
 \item{df1}{original PK(PD) dataset}
 
 \item{df2}{additional PK(PD) dataset}
+
+\item{demo.map}{toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables}
+
+\item{na}{value for missing numeric items}
 }
 \value{
 population PK(PD) dataset

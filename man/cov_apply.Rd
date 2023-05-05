@@ -11,7 +11,9 @@ cov_apply(
   time.by = NA,
   direction = "downup",
   cov.rnd = NA,
-  na = -999
+  na = -999,
+  demo.map = T,
+  keep.other = T
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ cov_apply(
 \item{cov.rnd}{covariate rounding parameter}
 
 \item{na}{value to replace NA numeric covariates}
+
+\item{demo.map}{toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables}
+
+\item{keep.other}{filter to keep or remove other events, EVID = 2}
 }
 \value{
 PK(PD) dataset with additional covariates

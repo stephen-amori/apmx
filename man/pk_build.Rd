@@ -10,7 +10,6 @@ pk_build(
   pd = NA,
   sl.cov = NA,
   tv.cov = NA,
-  other = NA,
   time.units = "days",
   cycle.length = NA,
   na = -999,
@@ -23,8 +22,9 @@ pk_build(
   DDV = F,
   PDV = F,
   sparse = 3,
+  demo.map = T,
   tv.cov.fill = "downup",
-  col.order = NA
+  keep.other = T
 )
 }
 \arguments{
@@ -37,8 +37,6 @@ pk_build(
 \item{sl.cov}{subject-level covarite dataframe}
 
 \item{tv.cov}{time-varying covariate dataframe}
-
-\item{other}{other event dataframe}
 
 \item{time.units}{units for time attributes}
 
@@ -64,9 +62,11 @@ pk_build(
 
 \item{sparse}{threshold for sparse sampling}
 
+\item{demo.map}{toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables}
+
 \item{tv.cov.fill}{time-varying covariate fill direction}
 
-\item{col.order}{column order}
+\item{keep.other}{filter to keep or remove other events, EVID = 2}
 }
 \value{
 PK(PD) dataset

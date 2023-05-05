@@ -1,7 +1,7 @@
 Package: apmx
 Type: Package
 Title: Automated Approach to PK and PKPD Dataset Assembly
-Version: 0.1.1
+Version: 0.1.2
 Author: c(person(given = "Stephen",
            family = "Amori", 
            role = c("aut", "cre"),
@@ -12,11 +12,11 @@ Author: c(person(given = "Stephen",
            email="ethan.dellamaestra@amadorbio.com"),
           person(given = "Daniel",
            family = "Litow", 
-           role = c("aut", "cre"),
+           role = c("ctb"),
            email="daniel.litow@amadorbio.com"),
           person(given = "Jonah",
            family = "Lyon", 
-           role = c("aut", "cre"),
+           role = c("ctb"),
            email="jonah.lyon@amadorbio.com")
            )
 Maintainer: Stephen Amori <stephen.amori@amadorbio.com>
