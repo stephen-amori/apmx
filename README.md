@@ -18,11 +18,11 @@ library(apmx)
 
 #### pk_build()
 `pk_build()` creates a PK(PD) dataset for analysis in NONMEM from source data. The functions is not intended to produce datasets for NCA.  
-The function automatically maps CDASH terminology to a uniform variable name (apmx name) appropriate for pharmacometric analysis.  
+The function automatically maps CDISC terminology to a uniform variable name (apmx name) appropriate for pharmacometric analysis.  
 The function issues a variety of warnings and errors to inform the user of problematic subjects and records.  
 
 General comments:  
-* The `ex` and `pc` domain may accept standard CDASH attribute names or apmx names. apmx names are required for pd and other events.  
+* The `ex` and `pc` domain may accept standard CDISC attribute names or apmx names. apmx names are required for pd events.  
 * `DTIM` (the date/time of the record) must be in ISO-8601 format to be processed correctly. All date/times assumed to be UTC. Accepted forms:  
     + YYYY:mm:ddTHH:MM:SS  
     + YYYY:mm:dd HH:MM:SS  
@@ -81,7 +81,9 @@ apmx derived attribute names and definitions:
 * `DOMAIN`: event domain  
 * `TIMEU`: units for all time variables  
 * `FDOSE`: date/time of first dose  
-* `BUILDD`: date of dataset construction  
+* `VERSN`: apmx package version number
+* `BUILD`: date of dataset construction  
+* `COMBD`: date of dataset combination (generated from `apmx::pk_combine()` only)  
 
 apmx derived binary flag names and definitions:  
 * `PDOSEF`: records that occur prior to first dose  
