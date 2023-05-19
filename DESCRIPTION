@@ -1,32 +1,22 @@
 Package: apmx
 Type: Package
 Title: Automated Approach to PK and PKPD Dataset Assembly
-Version: 0.1.2
-Author: c(person(given = "Stephen",
-           family = "Amori", 
-           role = c("aut", "cre"),
-           email="stephen.amori@amadorbio.com"),
-          person(given = "Ethan",
-           family = "DellaMaestra", 
-           role = c("aut", "cre"),
-           email="ethan.dellamaestra@amadorbio.com"),
-          person(given = "Daniel",
-           family = "Litow", 
-           role = c("ctb"),
-           email="daniel.litow@amadorbio.com"),
-          person(given = "Jonah",
-           family = "Lyon", 
-           role = c("ctb"),
-           email="jonah.lyon@amadorbio.com")
-           )
+Version: 0.2.0
+Date: 2023-05-19
+Authors@R: c(
+    person("Stephen", "Amori", email="stephen.amori@amadorbio.com", role = c("aut", "cre")),
+    person("Ethan", "DellaMaestra", email="ethan.dellamaestra@amadorbio.com", role = c("aut")),
+    person("Daniel", "Litow", role = c("ctb")),
+    person("Jonah", "Lyon", role = c("ctb"))
+  )
 Maintainer: Stephen Amori <stephen.amori@amadorbio.com>
 Description: Automated methods to assemble PK and PKPD datasets for analysis in NONMEM.
     The package includes functions to build datasets from SDTM, ADaM, or other dataset formats,
-    combine population datasets, add covariates, and create definition files.
+    combine population datasets, add covariates, and create documentation to support regulatory submission.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Imports: dplyr, tidyr, purrr, this.path, flextable, officer, tidyselect, utils
+Imports: dplyr, tidyr, purrr, this.path, flextable, officer, tidyselect, utils, arsenal
 RoxygenNote: 7.2.0
 URL: https://github.com/stephen-amori/apmx
 BugReports: https://github.com/stephen-amori/apmx/issues

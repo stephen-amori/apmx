@@ -2,7 +2,7 @@
 % Please edit documentation in R/pk_assembly.R
 \name{pk_build}
 \alias{pk_build}
-\title{Build a PK(PD) dataset}
+\title{Build a NONMEM PK(PD) dataset}
 \usage{
 pk_build(
   ex,
@@ -72,5 +72,7 @@ pk_build(
 PK(PD) dataset
 }
 \description{
-Build a PK(PD) dataset
+Input a pre-processed an ex and pc domain for combination into a NONMEM dataset.
+Additional pd endpoints, subject-level covariates, and time-varying covariates can also be added.
+Other parameters can customize some calculations and formatting
 }

@@ -15,5 +15,5 @@ pk_write(df, file)
 NA
 }
 \description{
-Write PK(PD) dataset to specified location
+Dataset created by pk_build() or pk_combine() will be outputted as a .csv file with NONMEM-standard formatting.
 }

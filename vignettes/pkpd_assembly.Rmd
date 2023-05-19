@@ -76,7 +76,8 @@ pc <- PC %>%
 We now have all of the information we need to build a PK dataset with `pk_build()`  
 ```{r}
 pkdf <- apmx::pk_build(ex = ex,
-                       pc = pc)
+                       pc = pc,
+                       time.rnd = 3)
 ```
 
 `pk_build()` includes additional parameters to help format the dataset.  

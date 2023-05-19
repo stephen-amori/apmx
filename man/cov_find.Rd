@@ -17,5 +17,6 @@ cov_find(df, cov, type)
 vector of desired column names
 }
 \description{
-Find covariates of particular types
+Can filter for categorical, continuous, or other covariates
+Can filter for numeric or character type
 }

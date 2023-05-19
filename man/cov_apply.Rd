@@ -39,5 +39,6 @@ cov_apply(
 PK(PD) dataset with additional covariates
 }
 \description{
-Apply covariates to PK(PD) dataset
+Add covariates to a dataset built by pk_build() or pk_combine()
+Can add subject-level covariates (by any ID variable) or time-varying (by any time variable)
 }

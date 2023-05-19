@@ -19,5 +19,6 @@ pk_combine(df1, df2, demo.map = T, na = -999)
 population PK(PD) dataset
 }
 \description{
-combine study level datasets to form population dataset
+Input two datasets created by pk_build().
+Any character descriptions that were numerically mapped will be re-mapped to the whole population.
 }

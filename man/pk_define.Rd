@@ -10,7 +10,8 @@ pk_define(
   variable.list,
   template,
   font = "Times New Roman",
-  size = 9
+  size = 9,
+  na = -999
 )
 }
 \arguments{
@@ -25,10 +26,14 @@ pk_define(
 \item{font}{font for table contents}
 
 \item{size}{font size for table contents}
+
+\item{na}{value used for missing or na numeric covariates}
 }
 \value{
 NA
 }
 \description{
-Create definition file from published dataset
+Definition file table can be read into a template word document (.docx) or blank document if desired.
+Definitions are sourced from a variable list stored separately on your server.
+Please refer to apmx::variable_list_export() for a standard copy of the variable list.
 }
