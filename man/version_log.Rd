@@ -4,7 +4,18 @@
 \alias{version_log}
 \title{Create and maintain a dataset version log}
 \usage{
-version_log(file, orig = F, outdir = NULL, prevdata = NULL, template, comp_var)
+version_log(
+  file,
+  orig = F,
+  outdir = NULL,
+  prevdata = NULL,
+  template = NULL,
+  comp_var,
+  src_data = "",
+  font = "Times New Roman",
+  size = 9,
+  orient = "landscape"
+)
 }
 \arguments{
 \item{file}{filepath of new dataset}
@@ -15,15 +26,23 @@ version_log(file, orig = F, outdir = NULL, prevdata = NULL, template, comp_var)
 
 \item{prevdata}{comparison dataset filepath}
 
-\item{template}{template .docx filepath}
+\item{template}{template docx filepath}
 
 \item{comp_var}{grouping variables for comparison}
+
+\item{src_data}{string to describe source data}
+
+\item{font}{font style}
+
+\item{size}{font size}
+
+\item{orient}{document orientation}
 }
 \value{
-version log as a .docx file
+version log as a docx file
 }
 \description{
-Version log is outputted as a .docx file
-Document tracks changes in subject count, record count, new variables, and changing variables
-User comments in the word document are preserved between versions
+Version log is outputted as a .docx file.
+Document tracks changes in subject count, record count, new variables, and changing variables.
+User comments in the word document are preserved between versions.
 }

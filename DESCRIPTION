@@ -1,11 +1,12 @@
 Package: apmx
 Type: Package
 Title: Automated Approach to PK and PKPD Dataset Assembly
-Version: 0.2.0
+Version: 0.2.1
 Date: 2023-05-19
 Authors@R: c(
     person("Stephen", "Amori", email="stephen.amori@amadorbio.com", role = c("aut", "cre")),
     person("Ethan", "DellaMaestra", email="ethan.dellamaestra@amadorbio.com", role = c("aut")),
+    person("Michael", "Dick", email="michael.dick@amadorbio.com", role=c("aut")),
     person("Daniel", "Litow", role = c("ctb")),
     person("Jonah", "Lyon", role = c("ctb"))
   )

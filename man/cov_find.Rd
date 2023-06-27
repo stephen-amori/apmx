@@ -17,6 +17,6 @@ cov_find(df, cov, type)
 vector of desired column names
 }
 \description{
-Can filter for categorical, continuous, or other covariates
-Can filter for numeric or character type
+Can filter for categorical, continuous, or other covariates.
+Can filter for numeric or character type.
 }

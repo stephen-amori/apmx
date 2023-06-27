@@ -13,10 +13,10 @@ pk_build(
   time.units = "days",
   cycle.length = NA,
   na = -999,
-  time.rnd = F,
-  amt.rnd = F,
-  dv.rnd = F,
-  cov.rnd = F,
+  time.rnd = NULL,
+  amt.rnd = NULL,
+  dv.rnd = NULL,
+  cov.rnd = NULL,
   impute = NA,
   BDV = F,
   DDV = F,
@@ -34,13 +34,13 @@ pk_build(
 
 \item{pd}{pd event dataframe}
 
-\item{sl.cov}{subject-level covarite dataframe}
+\item{sl.cov}{subject-level covariate dataframe}
 
 \item{tv.cov}{time-varying covariate dataframe}
 
 \item{time.units}{units for time attributes}
 
-\item{cycle.length}{cycle length}
+\item{cycle.length}{cycle length in units of days}
 
 \item{na}{value for missing numeric items}
 

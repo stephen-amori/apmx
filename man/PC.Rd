@@ -14,6 +14,7 @@ A data frame with 420 rows and 19 variables:
   \item{PCCAT}{domain category}
   \item{PCTEST}{analyte category}
   \item{VISIT}{visit label}
+  \item{PCDY}{study numeric day}
   \item{VISCRFN}{visit numeric code}
   \item{PCTPT}{timepoint label}
   \item{PCTPTN}{timepoint numeric code}
@@ -24,7 +25,8 @@ A data frame with 420 rows and 19 variables:
   \item{PCDTC}{observation date and time}
   \item{PCORRES}{original pharmacokinetic observation}
   \item{PCORRESU}{original pharmacokinetic observation unit label}
-  \item{PCSTRESN}{standardized pharmacokinetic observation}
+  \item{PCSTRESN}{standardized pharmacokinetic numeric observation}
+  \item{PCSTRESC}{standardized pharmacokinetic character observation}
   \item{PCSTRESU}{standardized pharmacokinetic observation unit label}
   \item{PCLLOQ}{standardized pharmacokinetic observation lower limit of quantification}
 }

@@ -10,6 +10,8 @@ cov_apply(
   id.by = "USUBJID",
   time.by = NA,
   direction = "downup",
+  exp = F,
+  ebe = F,
   cov.rnd = NA,
   na = -999,
   demo.map = T,
@@ -26,6 +28,10 @@ cov_apply(
 \item{time.by}{time variable to merge covariates}
 
 \item{direction}{fill direction for time-varying covariates}
+
+\item{exp}{treats new covariates as exposure metrics when TRUE}
+
+\item{ebe}{treats new covariates as empirical bayes estimates when TRUE}
 
 \item{cov.rnd}{covariate rounding parameter}
 

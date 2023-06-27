@@ -7,10 +7,10 @@
 #' @param ex dose event dataframe
 #' @param pc pc event dataframe
 #' @param pd pd event dataframe
-#' @param sl.cov subject-level covarite dataframe
+#' @param sl.cov subject-level covariate dataframe
 #' @param tv.cov time-varying covariate dataframe
 #' @param time.units units for time attributes
-#' @param cycle.length cycle length
+#' @param cycle.length cycle length in units of days
 #' @param na value for missing numeric items
 #' @param time.rnd time attribute rounding parameter
 #' @param amt.rnd amount attribute rounding parameter
@@ -29,11 +29,11 @@
 #' @export
 pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                      time.units="days", cycle.length=NA, na=-999,
-                     time.rnd=F, amt.rnd=F, dv.rnd=F, cov.rnd=F,
+                     time.rnd=NULL, amt.rnd=NULL, dv.rnd=NULL, cov.rnd=NULL,
                      impute=NA, BDV=F, DDV=F, PDV=F, sparse=3,
                      demo.map = T, tv.cov.fill = "downup", keep.other=T) {
 
-  func.version <- "0.2.0"
+  func.version <- "0.2.1"
 
   ###EX QC###
   cdisc.cols.ex <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",
@@ -56,13 +56,13 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   req.cols <- c("USUBJID", "DTIM", "NDAY", "TPT", "AMT", "VISIT", "CMT", "TPTC", "DVID", "DVIDU", "ROUTE", "FRQ")
 
   for (i in req.cols) {
-    if (!any(i %in% colnames(ex))) { #if a given column is missing
-      stop(paste0("Column ", i, " is missing from the ex dataset."))} #inform the user which variable is missing from which dataset
+    if (!any(i %in% colnames(ex))) {
+      stop(paste0("Column ", i, " is missing from the ex dataset."))}
 
-    if (i %in% c("NDAY", "TPT", "AMT", "CMT") & !is.numeric(unlist(ex[, i]))) { #if a column is numeric
+    if (i %in% c("NDAY", "TPT", "AMT", "CMT") & !is.numeric(unlist(ex[, i]))) {
       stop(paste0("Column ", i, " in ex is not numeric type."))}
 
-    if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "ROUTE", "FRQ", "DVIDU") & !is.character(unlist(ex[, i]))) { #if a column is character
+    if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "ROUTE", "FRQ", "DVIDU") & !is.character(unlist(ex[, i]))) {
       stop(paste0("Column ", i, " in ex is not character type."))}
 
     if(i %in% c("USUBJID", "CMT") & TRUE %in% is.na(ex[, i])) {
@@ -167,6 +167,10 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   pc.col.c <- c()
   pc.col.n <- c()
 
+  if (!is.data.frame(pc) & !is.data.frame(pd)) {
+    stop("Please enter a pc or pd domain.")
+  }
+
   if (is.data.frame(pc)) {
     cdisc.cols.pc <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",
                                              "TPT", "ODV", "LLOQ", "STUDY", "VISIT",
@@ -191,11 +195,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         stop(paste0("Column ", i, " is missing from the pc dataset."))
       }
 
-      if (i %in% c("NDAY", "TPT", "ODV", "CMT") & !is.numeric(unlist(pc[, i]))) { #if a column is numeric
+      if (i %in% c("NDAY", "TPT", "ODV", "CMT") & !is.numeric(unlist(pc[, i]))) {
         stop(paste0("Column ", i, " in pc is not numeric type."))
       }
 
-      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(pc[, i]))) { #if a column is character
+      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(pc[, i]))) {
         stop(paste0("Column ", i, " in pc is not character type."))
       }
 
@@ -215,10 +219,14 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       }
     }
 
+    if(!any("LDV" %in% colnames(pc))) {
+      pc <- as.data.frame(pc) %>%
+        dplyr::mutate(LDV = log(ODV))
+    }
+
     if(!any("EVID" %in% colnames(pc))) {
       pc <- as.data.frame(pc) %>%
-        dplyr::mutate(EVID = 0, #add EVID for observation events
-                      LDV = log(ODV)) #natural log ODV
+        dplyr::mutate(EVID = 0)
     }
 
     if(!any("DOMAIN" %in% colnames(pc))) {
@@ -250,7 +258,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       stop("NDAY in pc has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.")
     }
 
-    usubjid <- c(usubjid, unique(pc$USUBJID))
+    usubjid <- unique(c(usubjid, pc$USUBJID))
+    dvids <- unique(pc$DVID)
   }
 
   ###PD QC###
@@ -264,11 +273,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         stop(paste0("Column ", i, " is missing from the pd dataset."))
       }
 
-      if (i %in% c("NDAY", "TPT", "ODV", "CMT") & !is.numeric(unlist(pd[, i]))) { #if a column is numeric
+      if (i %in% c("NDAY", "TPT", "ODV", "CMT") & !is.numeric(unlist(pd[, i]))) {
         stop(paste0("Column ", i, " in pd is not numeric type."))
       }
 
-      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(pd[, i]))) { #if a column is character
+      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(pd[, i]))) {
         stop(paste0("Column ", i, " in pd is not character type."))
       }
 
@@ -288,10 +297,14 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       }
     }
 
+    if(!any("LDV" %in% colnames(pd))) {
+      pd <- as.data.frame(pd) %>%
+        dplyr::mutate(LDV = log(ODV))
+    }
+
     if(!any("EVID" %in% colnames(pd))) {
       pd <- as.data.frame(pd) %>%
-        dplyr::mutate(EVID = 0, #add EVID for observation events
-                      LDV = ODV) #log-transformed ODV
+        dplyr::mutate(EVID = 0)
     }
 
     if(!any("DOMAIN" %in% colnames(pd))) {
@@ -315,7 +328,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       stop("NDAY in pd has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.")
     }
 
-    usubjid <- c(usubjid, unique(pd$USUBJID))
+    usubjid <- unique(c(usubjid, pd$USUBJID))
+    dvids <- unique(c(dvids, pd$DVID))
 
     pd <- pd %>%
       dplyr::mutate(IMPDV = ifelse(!"IMPDV" %in% colnames(pd), 0, IMPDV))
@@ -323,6 +337,12 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   ###SL.COV QC###
   if(is.list(sl.cov) & !is.data.frame(sl.cov)) {
+    for (i in 1:length(sl.cov)) {
+      if (!"USUBJID" %in% colnames(sl.cov[[i]])) {
+        stop(paste0("USUBJID not including in all sl.cov dataframes."))
+      }
+    }
+
     sl.cov <- suppressMessages(sl.cov %>% purrr::reduce(dplyr::full_join, ))
   }
 
@@ -333,7 +353,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         stop(paste0("Column ", i, " is missing from the sl.cov dataset."))
       }
 
-      if (i %in% c("USUBJID") & !is.character(unlist(sl.cov[, i]))) { #if a column is character
+      if (i %in% c("USUBJID") & !is.character(unlist(sl.cov[, i]))) {
         stop(paste0("Column ", i, " in sl.cov is not character type."))
       }
 
@@ -348,14 +368,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       }
     }
 
-    if(nrow(sl.cov)!=length(unique(sl.cov$USUBJID))) { #more than 1 row per subject
+    if(nrow(sl.cov)!=length(unique(sl.cov$USUBJID))) {
       stop("sl.cov has duplicate USUBJID rows.")
-    }
-
-    for (i in colnames(sl.cov)[2:ncol(sl.cov)]) {
-      if (i %in% c(colnames(ex), colnames(pc), colnames(pd))) {
-        stop(paste0(i, " column is duplicated in sl.cov and another dataset. Please include this column in one dataset only."))
-      }
     }
 
     missing <- c()
@@ -383,7 +397,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         stop(paste0("Column ", i, " is missing from the tv.cov dataset."))
       }
 
-      if (i %in% c("USUBJID") & !is.character(unlist(tv.cov[, i]))) { #if a column is character
+      if (i %in% c("USUBJID") & !is.character(unlist(tv.cov[, i]))) {
         stop(paste0("Column ", i, " in tv.cov is not character type."))
       }
 
@@ -418,16 +432,10 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                                             grepl("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%d %H:%M"),
                                             grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}", DTIM) ~ as.POSIXct(DTIM, tz="UTC", format="%Y-%m-%d")))
 
-    for (i in colnames(tv.cov)) {
-      if (i %in% c(colnames(ex), colnames(pc), colnames(pd)) & !i %in% c("USUBJID", "DTIM", "EVID", "DOMAIN")) {
-        stop(paste0(i, " column is duplicated in tl.cov and another dataset. Please include this column in one dataset only."))
-      }
-    }
-
     check <- tv.cov %>%
       dplyr::mutate(Check = paste0(USUBJID, DTIM))
 
-    if(nrow(tv.cov)!=length(unique(paste0(check$USUBJID, check$DTIM)))) {
+    if(nrow(tv.cov)!=length(unique(check$Check))) {
       stop("tv.cov has duplicate USUBJID-DTIM rows.")
     }
 
@@ -443,29 +451,55 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     }
   }
 
-  ###TIME.UNITS QC###
+  ###OTHER QC###
   if (!any(time.units %in% c("days", "hours"))) {
     stop("time.units parameter must be in days or hours.")
   }
 
-  ###ROUNDING QC###
-  if(time.rnd!=F & time.rnd%%1!=0) {
-    stop("time.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
+  if(!is.null(time.rnd)) {
+    if(is.numeric(time.rnd)) {
+      if(time.rnd%%1!=0) {
+        stop("time.rnd parameter must an integer (the number of rounded decimal points).")
+      }
+    }
+    else {
+      stop("time.rnd parameter must be an integer (the number of rounded decimal points).")
+    }
   }
 
-  if(amt.rnd!=F & amt.rnd%%1!=0) {
-    stop("amt.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
+  if(!is.null(amt.rnd)) {
+    if(is.numeric(amt.rnd)) {
+      if(amt.rnd%%1!=0) {
+        stop("amt.rnd parameter must an integer (the number of rounded decimal points).")
+      }
+    }
+    else {
+      stop("amt.rnd parameter must be an integer (the number of rounded decimal points).")
+    }
   }
 
-  if(dv.rnd!=F & dv.rnd%%1!=0) {
-    stop("dv.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
+  if(!is.null(dv.rnd)) {
+    if(is.numeric(dv.rnd)) {
+      if(dv.rnd%%1!=0) {
+        stop("dv.rnd parameter must an integer (the number of rounded decimal points).")
+      }
+    }
+    else {
+      stop("dv.rnd parameter must be an integer (the number of rounded decimal points).")
+    }
   }
 
-  if(cov.rnd!=F & cov.rnd%%1!=0) {
-    stop("cov.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
+  if(!is.null(cov.rnd)) {
+    if(is.numeric(cov.rnd)) {
+      if(cov.rnd%%1!=0) {
+        stop("cov.rnd parameter must an integer (the number of rounded decimal points).")
+      }
+    }
+    else {
+      stop("cov.rnd parameter must be an integer (the number of rounded decimal points).")
+    }
   }
 
-  ###BDV/DDV/PDV QC###
   if (BDV==F & DDV==T & !any("BDV" %in% colnames(pd))) {
     stop("BDV parameter must be TRUE or BDV column must be included in pd to create DDV.")
   }
@@ -478,7 +512,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     stop("DDV parameter must be TRUE or BDV & DDV columns must be included in pd to create PDV.")
   }
 
-  ###OTHER ARGUMENT QC###
   if (!any(tv.cov.fill %in% c("down", "downup", "up", "updown"))) {
     stop("tv.cov.fill parameter must be a tidy direction (down, up, downup, updown).")
   }
@@ -514,10 +547,8 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     stop("demo.map parameter must be TRUE or FALSE.")
   }
 
-  if(!is.na(demo.map)) {
-    if(!demo.map %in% c(T, F)) {
-      stop("demo.map parameter must be TRUE or FALSE.")
-    }
+  if(!is.logical(demo.map)) {
+    stop("demo.map parameter must be TRUE or FALSE.")
   }
 
   if(!is.logical(keep.other)) {
@@ -529,53 +560,67 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   if (is.data.frame(pc)) {
     df <- df %>%
-      dplyr::bind_rows(pc) %>% #add dose and pc events
+      dplyr::bind_rows(pc) %>%
       dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)
   }
 
   if(is.data.frame(pd)) {
     df <- df %>%
-      dplyr::bind_rows(pd) %>% #add pd events
+      dplyr::bind_rows(pd) %>%
       dplyr::arrange(USUBJID, NDAY, TPT, CMT, -EVID)
   }
 
   ###ACTUAL + NOMINAL TIME CALCULATIONS###
   df <- df %>%
-    dplyr::mutate(NTFD = dplyr::case_when(time.units=="days" & NDAY>=1 ~ NDAY-1 + TPT,
-                                          time.units=="days" & NDAY<0 ~ NDAY+TPT,
-                                          time.units=="hours" & NDAY>=1 ~ 24*(NDAY-1) + TPT,
-                                          time.units=="hours" & NDAY<0 ~ 24*(NDAY) + TPT), #compute NTFD from NDAY and TPT
-                  NDOSE1 = ifelse(EVID %in% c(1, 4), NTFD, NA), #nominal time of dose event
-                  NDOSE2 = ifelse(EVID %in% c(1, 4), NTFD+ADDL*II, NA), #nominal time of the last dose of the dose event
-                  LDOSE1 = ifelse(EVID %in% c(1, 4), as.character(DTIM), NA), #actual time of the dose event
+    dplyr::mutate(TIMEU = time.units,
+                  NTFD = dplyr::case_when(NDAY==na | TPT==na ~ -999,
+                                          TIMEU=="days" & NDAY>=1 ~ NDAY-1 + TPT,
+                                          TIMEU=="days" & NDAY<0 ~ NDAY+TPT,
+                                          TIMEU=="hours" & NDAY>=1 ~ 24*(NDAY-1) + TPT,
+                                          TIMEU=="hours" & NDAY<0 ~ 24*(NDAY) + TPT),
+                  NDOSE1 = ifelse(EVID %in% c(1, 4), NTFD, NA),
+                  NDOSE2 = ifelse(EVID %in% c(1, 4), NTFD+ADDL*II, NA),
+                  LDOSE1 = ifelse(EVID %in% c(1, 4), as.character(DTIM), NA),
                   LDOSE1 = ifelse(EVID %in% c(1, 4) & is.na(LDOSE1), "1900-01-01 00:00:00", LDOSE1),
-                  LDOSE2 = ifelse(EVID %in% c(1, 4), as.character(DTIM+ADDL*ifelse(time.units=="days", 60*60*24*II, 60*60*II)), NA), #actual time of the last dose of the dose event
-                  LDOSE2 = ifelse(EVID %in% c(1, 4) & is.na(LDOSE2), "1900-01-01 00:00:00", LDOSE2)) %>% #actual time of the first dose per subject
+                  LDOSE2 = ifelse(EVID %in% c(1, 4),
+                                  ifelse(TIMEU=="days", as.character(DTIM+ADDL*II*3600*24), as.character(DTIM+ADDL*II*3600)),
+                                  NA),
+                  LDOSE2 = ifelse(EVID %in% c(1, 4) & is.na(LDOSE2), "1900-01-01 00:00:00", LDOSE2),
+                  tII = ifelse(EVID %in% c(1, 4),
+                               ifelse(is.na(II), 0, II),
+                               NA)) %>%
     dplyr::arrange(USUBJID, EVID) %>%
     dplyr::group_by(USUBJID, EVID) %>%
     dplyr::mutate(FDOSE = ifelse(EVID==1 & dplyr::row_number()==1, as.character(DTIM), NA)) %>%
     dplyr::ungroup() %>%
     dplyr::arrange(USUBJID, DTIM, NDAY, TPT, CMT, -EVID) %>%
     dplyr::group_by(USUBJID) %>%
-    tidyr::fill(NDOSE1, NDOSE2, LDOSE1, LDOSE2, FDOSE, .direction="downup") %>% #fill selected dates to all events
+    tidyr::fill(NDOSE1, NDOSE2, LDOSE1, LDOSE2, FDOSE, tII, .direction="downup") %>%
     dplyr::ungroup() %>%
     dplyr::mutate(LDOSE1 = ifelse(LDOSE1=="1900-01-01 00:00:00", NA, LDOSE1),
                   LDOSE2 = ifelse(LDOSE2=="1900-01-01 00:00:00", NA, LDOSE2),
+                  FDOSE = ifelse(nchar(FDOSE)==10, paste(FDOSE, "00:00:00"), FDOSE),
                   FDOSE = as.POSIXct(FDOSE, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
+                  LDOSE1 = ifelse(nchar(LDOSE1)==10, paste(LDOSE1, "00:00:00"), LDOSE1),
                   LDOSE1 = as.POSIXct(LDOSE1, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
+                  LDOSE2 = ifelse(nchar(LDOSE2)==10, paste(LDOSE2, "00:00:00"), LDOSE2),
                   LDOSE2 = as.POSIXct(LDOSE2, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
-                  ATFD = as.numeric(difftime(DTIM, FDOSE, units=time.units)), #DTIM - FDOSE
+                  ATFD = as.numeric(difftime(DTIM, FDOSE, units=time.units)),
                   ATLD = ifelse(is.na(ATFD), NA,
-                                dplyr::case_when(DTIM >= LDOSE2 ~ as.numeric(difftime(DTIM, LDOSE2, units=time.units)), #DTIM - LDOSE2 if after last dose of previous dose event
-                                                 is.na(II) ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)), #no additional doses
-                                                 ATFD<=0 ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)), #pre-dose records
-                                                 TRUE ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)) %% II)), #remainder of DTIM - LDOSE1 if taken during the dosing interval
-                  NTLD = dplyr::case_when(NTFD==-999 ~ -999,
-                                          DTIM >= LDOSE2 ~ NTFD-NDOSE2,
-                                          is.na(II) ~ NTFD-NDOSE1,
+                                dplyr::case_when(DTIM >= LDOSE2 ~ as.numeric(difftime(DTIM, LDOSE2, units=time.units)),
+                                                 is.na(tII) ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)),
+                                                 tII==0 ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)),
+                                                 ATFD<=0 ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)),
+                                                 TRUE ~ as.numeric(difftime(DTIM, LDOSE1, units=time.units)) %% tII)),
+                  NTLD = dplyr::case_when(NTFD==-999 ~ na,
+                                          NTFD >= NDOSE2 ~ NTFD-NDOSE2,
+                                          is.na(tII) ~ NTFD-NDOSE1,
+                                          tII==0 ~ NTFD-NDOSE1,
                                           ATFD<=0 ~ NTFD-NDOSE1,
-                                          TRUE ~ (NTFD-NDOSE1) %% II)) %>%
-    dplyr::select(-LDOSE1, -LDOSE2, -NDOSE1, -NDOSE2) #remove intermediate dates
+                                          TRUE ~ (NTFD-NDOSE1) %% tII),
+                  NTLD = ifelse(NTLD==-999, NA, NTLD),
+                  NTFD = ifelse(NTFD==-999, NA, NTFD)) %>%
+    dplyr::select(-LDOSE1, -LDOSE2, -NDOSE1, -NDOSE2, -tII)
 
   ###IMPUTATION METHODS###
   if (!is.na(impute)) {
@@ -601,6 +646,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         dplyr::mutate(IMPEX = dplyr::case_when(EVID==1 & is.na(DTIM) ~ 1,
                                                EVID==1 & is.na(IMPEX) ~ 0,
                                                TRUE ~ IMPEX),
+                      PCDTIM = ifelse(nchar(PCDTIM)==10, paste(PCDTIM, "00:00:00"), PCDTIM),
                       PCDTIM = as.POSIXct(PCDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                       IMPDTIM = ifelse(EVID==1 & is.na(DTIM), as.character(PCDTIM-PCTPT*ifelse(time.units=="days", 24*60*60, 60*60)), NA),
                       IMPFEX = ifelse(is.na(FDOSE), 1, 0),
@@ -608,7 +654,9 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         dplyr::group_by(USUBJID) %>%
         tidyr::fill(FDOSE, .direction="downup") %>%
         dplyr::ungroup() %>%
-        dplyr::mutate(FDOSE = as.POSIXct(FDOSE, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
+        dplyr::mutate(FDOSE = ifelse(nchar(FDOSE)==10, paste(FDOSE, "00:00:00"), FDOSE),
+                      FDOSE = as.POSIXct(FDOSE, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
+                      IMPDTIM = ifelse(nchar(IMPDTIM)==10, paste(IMPDTIM, "00:00:00"), IMPDTIM),
                       IMPDTIM = as.POSIXct(IMPDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                       ATFD = dplyr::case_when(!is.na(IMPDTIM) & is.na(ATFD) ~ as.numeric(difftime(IMPDTIM, FDOSE, units=time.units)),
                                               EVID==1 & is.na(ATFD) & is.na(PCATFD) & !is.na(FDOSE) ~ as.numeric(difftime(DTIM, FDOSE, units=time.units)),
@@ -618,10 +666,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                       ATLD = ifelse(EVID==1 & is.na(ATLD), 0, ATLD)) %>%
         dplyr::mutate(EXATFD = ifelse(EVID==1, ATFD, NA),
                       EXNTFD = ifelse(EVID==1, NTFD, NA),
-                      IMPDTIM = as.POSIXct(IMPDTIM)) %>%
+                      IMPDTIM = as.character(IMPDTIM)) %>%
         dplyr::group_by(USUBJID) %>%
         tidyr::fill(EXATFD, EXNTFD, IMPDTIM, IMPEX, .direction="downup") %>%
         dplyr::mutate(IMPDV = ifelse(EVID==0 & is.na(DTIM), 1, IMPDV),
+                      IMPDTIM = ifelse(nchar(IMPDTIM)==10, paste(IMPDTIM, "00:00:00"), IMPDTIM),
                       IMPDTIM = as.POSIXct(IMPDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
                       ATFD = dplyr::case_when(EVID==0 & is.na(ATFD) & !is.na(DTIM) ~ as.numeric(difftime(DTIM, IMPDTIM, units=time.units)),
                                               EVID==0 & is.na(ATFD) & is.na(EXATFD) ~ NTFD,
@@ -634,7 +683,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                       NTLD = dplyr::case_when(IMPDV==1 | IMPFEX==1 | IMPEX==1 ~ NTFD-EXNTFD,
                                               TRUE ~ NTLD)) %>%
         dplyr::ungroup() %>%
-        #dplyr::mutate(IMPFEX = ifelse(IMPFEX==1 & is.na(FDOSE), 0, IMPFEX)) %>%
         dplyr::select(-PCATFD, -PCTPT, -EXATFD, -EXNTFD, -IMPDTIM) %>%
         dplyr::arrange(USUBJID, ATFD, EVID, CMT)
     }
@@ -642,8 +690,10 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   ###DOSE AND OBSERVATION CALCULATIONS###
   if ("DUR" %in% colnames(ex)) {
-    df <- df %>%
-      dplyr::mutate(RATE = ifelse(!is.na(DUR), AMT/DUR, NA))
+    if (!"RATE" %in% colnames(ex)) {
+      df <- df %>%
+        dplyr::mutate(RATE = ifelse(!is.na(DUR), AMT/DUR, NA))
+    }
     ex.nonmem <- c("RATE", ex.nonmem)
   }
 
@@ -658,7 +708,10 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                   NTLC = dplyr::case_when(is.na(cycle.length) ~ NTFD,
                                           is.numeric(cycle.length) & NTFD<0 ~ NTFD,
                                           is.numeric(cycle.length) & time.units=="hours" ~ NTFD %% cycle.length*24,
-                                          is.numeric(cycle.length) & time.units=="days" ~ NTFD %% cycle.length)) %>%
+                                          is.numeric(cycle.length) & time.units=="days" ~ NTFD %% cycle.length),
+                  DVIDC = DVID,
+                  DVID = match(DVIDC, dvids),
+                  DVID = ifelse(EVID %in% c(1, 4), NA, DVID)) %>%
     dplyr::group_by(USUBJID, NDAY) %>%
     tidyr::fill(IMPEX, .direction="downup") %>% #apply to pre-dose records
     dplyr::group_by(USUBJID) %>%
@@ -670,28 +723,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       dplyr::group_by(USUBJID) %>%
       tidyr::fill(NSTUDY, NSTUDYC, .direction="downup") %>%
       dplyr::ungroup()
-  }
-
-  ###TIME WARNING FUNCTIONS###
-  check <- df %>%
-    dplyr::filter(!is.na(NTFD) & NTFD!=-999 & NTFD!=na) %>%
-    dplyr::group_by(USUBJID) %>%
-    dplyr::mutate(DNTFD = NTFD-dplyr::lag(NTFD)) %>%
-    dplyr::filter(DNTFD < 0) %>%
-    dplyr::filter(!is.na(ATFD))
-
-  if (nrow(check)>0) {
-    warning(paste0("The following USUBJID(s) have at least one event that occurred out of protocol order (NTFD is not strictly increasing): ", paste0(unique(check$USUBJID), collapse = ", ")))
-  }
-
-  check <- df %>%
-    dplyr::filter(ATFD >= 0) %>%
-    dplyr::filter(!is.na(ATFD)) %>%
-    dplyr::filter(NTLD < 0) %>%
-    dplyr::filter(NTLD!=-999)
-
-  if (nrow(check)>0) {
-    warning(paste0("The following USUBJID(s) have at least one negative NTLD value after first dose: ", paste0(unique(check$USUBJID), collapse = ", ")))
   }
 
   ###PD PROCESSING###
@@ -710,18 +741,18 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
     if(BDV==T & !any("BDV" %in% colnames(pd))) {
       df <- df %>%
-        dplyr::arrange(USUBJID, DVID, ATFD) %>%
+        dplyr::arrange(USUBJID, DVIDC, ATFD) %>%
         dplyr::mutate(PDOS = ifelse(ATFD<=0 & EVID==0, 1, 0)) %>%
-        dplyr::group_by(USUBJID, DVID) %>%
-        dplyr::mutate(BDV = ifelse(DVID %in% pd$DVID & PDOS==1, dplyr::last(ODV), NA)) %>%
-        dplyr::group_by(USUBJID, DVID) %>%
+        dplyr::group_by(USUBJID, DVIDC) %>%
+        dplyr::mutate(BDV = ifelse(DVIDC %in% pd$DVID & PDOS==1, dplyr::last(ODV), NA)) %>%
+        dplyr::group_by(USUBJID, DVIDC) %>%
         tidyr::fill(BDV, .direction="downup") %>%
         dplyr::ungroup() %>%
         dplyr::arrange(USUBJID, ATFD, CMT, -EVID)
 
       for (i in unique(pd$DVID)) {
         check <- df %>%
-          dplyr::filter(DVID==i) %>%
+          dplyr::filter(DVIDC==i) %>%
           dplyr::filter(is.na(BDV)) %>%
           dplyr::filter(!is.na(ATFD))
 
@@ -748,8 +779,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   s.cat.cov.n <- c() #vector to contain subject-level numeric categorical covariates
   stud.col.n <- c("NSTUDY") #vector for study column
   stud.col.c <- c("NSTUDYC") #vector for study column
+  s.cont.cov.n <- c() # was missing
+  s.cont.cov.units <- c()
 
   if (is.data.frame(sl.cov)==TRUE) {
+
     for (i in 1:length(colnames(sl.cov))) {
       name = colnames(sl.cov)[i]
       if (name=="USUBJID") {
@@ -806,8 +840,22 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         if (nchar(name)>7) {
           stop(paste(name, "column name in sl.cov must be 7 characters or fewer."))
         }
-        s.cont.cov <- c(s.cont.cov, paste0("B",name))
-        colnames(sl.cov)[i] <- paste0("B", name)
+        index_of_unit_column <- grep(paste0(name, "U"), names(sl.cov))
+        if (length(index_of_unit_column) != 1) {
+          stop(paste("All numerical covariates in sl.cov need units."))
+        }
+        if(length(sort(unique(unlist(sl.cov[,paste0(name, "U")]))))>1) {
+          stop(paste(name, "has more than one unit."))
+        }
+        baseline_name <- paste0("B", name)
+        baseline_name_units <- paste0("B", name, "U")
+        colnames(sl.cov)[i] <- baseline_name
+        colnames(sl.cov)[index_of_unit_column] <- baseline_name_units
+        s.cont.cov <- append(s.cont.cov, baseline_name)
+        s.cont.cov.units <- append(s.cont.cov.units, baseline_name_units)
+      }
+      else if (substr(name, nchar(name), nchar(name))=="U" & gsub("U$", "", name) %in% colnames(sl.cov)) {
+        next
       }
       else {
         if (nchar(name)>6) {
@@ -822,13 +870,21 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         colnames(sl.cov)[i] <- paste0("N", name, "C")
       }
     }
+
+    for (i in colnames(sl.cov)) {
+      if (i %in% colnames(df) & i!="USUBJID") {
+        stop(paste0(i, " column is duplicated in sl.cov and another dataset. Please include this column in one dataset only."))
+      }
+    }
   }
 
   t.cat.cov.c <- c() #vector to contain subject-level character categorical covariates
   t.cont.cov <- c() #vector to contain subject-level continuous covariates
   t.cat.cov.n <- c() #vector to contain subject-level numeric categorical covariates
+  t.cont.cov.units <- c()
 
   if (is.data.frame(tv.cov)==TRUE) {
+
     for (i in 1:length(colnames(tv.cov))) {
       name = colnames(tv.cov)[i]
       if (name %in% c("USUBJID", "DTIM", "EVID", "DOMAIN")) {
@@ -881,8 +937,22 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         if (nchar(name)>7) {
           stop(paste(name, "column name in tv.cov must be 7 characters or fewer."))
         }
-        t.cont.cov <- c(t.cont.cov, paste0("T",name))
-        colnames(tv.cov)[i] <- paste0("T", name)
+        index_of_unit_column <- grep(paste0(name, "U"), names(tv.cov))
+        if (length(index_of_unit_column) != 1) {
+          stop("All numerical covariates need units.")
+        }
+        if(length(sort(unique(unlist(tv.cov[,paste0(name, "U")]))))>1) {
+          stop(paste(name, "has more than one unit."))
+        }
+        baseline_name <- paste0("T", name)
+        baseline_name_units <- paste0("T", name, "U")
+        colnames(tv.cov)[i] <- baseline_name
+        colnames(tv.cov)[index_of_unit_column] <- baseline_name_units
+        t.cont.cov <- append(t.cont.cov, baseline_name)
+        t.cont.cov.units <- append(t.cont.cov.units, baseline_name_units)
+      }
+      else if (substr(name, nchar(name), nchar(name))=="U" & gsub("U$", "", name) %in% colnames(tv.cov)) {
+        next
       }
       else {
         if (nchar(name)>6) {
@@ -897,11 +967,18 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         colnames(tv.cov)[i] <- paste0("T", name, "C")
       }
     }
+
+    for (i in colnames(tv.cov)) {
+      if (i %in% colnames(df) & !i %in% c("USUBJID", "DTIM", "EVID", "DOMAIN")) {
+        stop(paste0(i, " column is duplicated in tl.cov and another dataset. Please include this column in one dataset only."))
+      }
+    }
   }
 
   cat.cov.c <- c(s.cat.cov.c, t.cat.cov.c) #all character categorical variables
   cat.cov.n <- c(s.cat.cov.n, t.cat.cov.n) #all numeric categorical variables
   cont.cov <- c(s.cont.cov, t.cont.cov) #all continuous variables
+  cont.cov.units <- c(s.cont.cov.units, t.cont.cov.units)
 
   ###JOIN SUBJECT-LEVEL COVARIATES###
   if(is.data.frame(sl.cov)==TRUE) {
@@ -917,40 +994,51 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       dplyr::group_by(USUBJID) %>% #group
       tidyr::fill(FDOSE, .direction="downup") %>%
       dplyr::ungroup() %>%
-      dplyr::mutate(ATFD = ifelse(EVID==2, as.numeric(difftime(DTIM, FDOSE, units=time.units)), ATFD),
-                    ATFD = dplyr::case_when(EVID==2 & (is.na(time.rnd) | time.rnd==0) ~ ATFD-0.001,
-                                            EVID==2 & time.rnd>=3 ~ ATFD-0.001,
-                                            EVID==2 & time.rnd==2 ~ ATFD-0.01,
-                                            EVID==2 & time.rnd==1 ~ ATFD-0.1,
-                                            TRUE ~ ATFD)) %>%
+      dplyr::mutate(ATFD = ifelse(EVID==2, as.numeric(difftime(DTIM, FDOSE, units=time.units)), ATFD))
+
+    if (is.null(time.rnd)) {
+      df <- df %>%
+        dplyr::mutate(ATFD = ATFD-0.001)
+    }
+
+    else {
+      df <- df %>%
+        dplyr::mutate(ATFD = dplyr::case_when(EVID==2 & time.rnd>=3 ~ ATFD-0.001,
+                                              EVID==2 & time.rnd==2 ~ ATFD-0.01,
+                                              EVID==2 & time.rnd==1 ~ ATFD-0.1,
+                                              TRUE ~ ATFD))
+    }
+
+    df <- df %>%
       dplyr::arrange(USUBJID, ATFD) %>%
       dplyr::group_by(USUBJID)
 
     if(length(t.cont.cov)>0) {df <- df %>% tidyr::fill(tidyselect::all_of(t.cont.cov), .direction=tv.cov.fill)} #fill variables in the list downup
     if(length(t.cat.cov.c)>0) {df <- df %>% tidyr::fill(tidyselect::all_of(t.cat.cov.c), .direction=tv.cov.fill)}
     if(length(t.cat.cov.n)>0) {df <- df %>% tidyr::fill(tidyselect::all_of(t.cat.cov.n), .direction=tv.cov.fill)}
+    if(length(t.cont.cov.units)>0) {df <- df %>% tidyr::fill(tidyselect::all_of(t.cont.cov.units), .direction=tv.cov.fill)}
 
     df <- df %>%
       dplyr::ungroup()
   }
 
   ###FLAG ITEMS###
-  cmt.dv <- sort(unique(dplyr::filter(df, EVID==0)$CMT))
+  dvid.dv <- sort(unique(dplyr::filter(df, EVID==0)$DVID))
   if(!is.na(impute)) {
     if (impute==2) {
-      flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", cmt.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPFEX", "IMPDV")
+      flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", dvid.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPFEX", "IMPDV")
     }
     if (impute==1) {
-      flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", cmt.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPDV")
+      flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", dvid.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPDV")
     }
   }
   if (is.na(impute)) {
-    flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", cmt.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPDV")
+    flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", dvid.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPDV")
   }
 
   #NODV_F
-  for (i in cmt.dv) {
-    usubjid <- data.frame(unique(dplyr::filter(df, CMT==i & EVID==0)$USUBJID),
+  for (i in dvid.dv) {
+    usubjid <- data.frame(unique(dplyr::filter(df, DVID==i & EVID==0)$USUBJID),
                           0)
     colnames(usubjid) <- c("USUBJID", paste0("NODV", i, "F"))
     df <- df %>% dplyr::left_join(usubjid, by="USUBJID")
@@ -960,7 +1048,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   #DUPF
   df <- df %>%
-    dplyr::group_by(USUBJID, ATFD, EVID, CMT) %>%
+    dplyr::group_by(USUBJID, ATFD, EVID, CMT, DVID) %>%
     dplyr::mutate(DUPF = ifelse(dplyr::row_number()>=2 & !is.na(ATFD), 1, NA)) %>% #flag duplicate records in same usubjid-atfd-evid-amt-odv-cmt
     tidyr::fill(DUPF, .direction="up") %>% #apply flag to all records in the group
     dplyr::ungroup() %>%
@@ -1032,7 +1120,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   ###FIX NA ITEMS###
   for (i in c("NTFD", "NTLC", "NTLD", ex.col.n, pc.col.n, pd.col.n, cat.cov.n, cont.cov)) {
-    df[(is.na(df[, i]) | df[, i]==-999) & df$EVID!=2, i] <- na
+    df[(is.na(df[, i])) & df$EVID!=2, i] <- na
   }
 
   ###ROUDING###
@@ -1090,7 +1178,65 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       dplyr::bind_cols(cov.num)
   }
 
-  ###FLAG WARNINGS###
+  ###FINAL SORTING/ARRANGEMENT###
+  df <- df %>%
+    dplyr::arrange(USUBJID, ATFD, CMT, EVID) %>%
+    dplyr::mutate(ID = match(USUBJID, unique(df$USUBJID)),
+                  TIMEU = time.units,
+                  SUBJID = gsub("\\D+", "", USUBJID),
+                  LINE = dplyr::row_number(),
+                  DTIM = as.character(DTIM),
+                  FDOSE = as.character(FDOSE),
+                  VERSN = func.version,
+                  BUILD = Sys.Date(),
+                  NSTUDY = ifelse(NSTUDY==na, NA, NSTUDY)) %>%
+    dplyr::group_by(USUBJID) %>%
+    tidyr::fill(NSTUDY, NSTUDYC, .direction="downup") %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(NSTUDY = ifelse(is.na(NSTUDY), na, NSTUDY)) %>%
+    dplyr::mutate_at(.vars = c(ex.col.c, pc.col.c, pd.col.c, cat.cov.c),
+                     .funs = function(x) toupper(x))
+
+  df <- df %>%
+    dplyr::select(C, tidyselect::all_of(stud.col.n), SUBJID, ID, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY, TPT,
+                  EVID, MDV, CMT, DVID, AMT, tidyselect::all_of(ex.nonmem), ODV, LDV, tidyselect::all_of(pd.dvs),
+                  BLQ, LLOQ, tidyselect::all_of(ex.col.n), tidyselect::all_of(pc.col.n), tidyselect::all_of(pd.col.n),
+                  tidyselect::all_of(cat.cov.n), tidyselect::all_of(cont.cov), tidyselect::all_of(flags),
+                  LINE, USUBJID, tidyselect::all_of(stud.col.c), VISIT, TPTC, DOMAIN, DVIDC, DVIDU, TIMEU,
+                  tidyselect::all_of(ex.col.c), tidyselect::all_of(pc.col.c), tidyselect::all_of(pd.col.c),
+                  tidyselect::all_of(cat.cov.c), tidyselect::all_of(s.cont.cov.units),
+                  tidyselect::all_of(t.cont.cov.units), DTIM, FDOSE, VERSN, BUILD)
+
+  ###FILTER OTHER EVENTS###
+  if (keep.other==F) {
+    df <- df %>%
+      dplyr::filter(EVID!=2) %>%
+      dplyr::mutate(LINE = dplyr::row_number())
+  }
+
+  ###WARNINGS###
+  check <- df %>%
+    dplyr::filter(!is.na(NTFD) & NTFD!=na) %>%
+    dplyr::group_by(USUBJID) %>%
+    dplyr::mutate(DNTFD = NTFD-dplyr::lag(NTFD)) %>%
+    dplyr::filter(DNTFD < 0) %>%
+    dplyr::filter(!is.na(ATFD))
+
+  if (nrow(check)>0) {
+    warning(paste0("The following USUBJID(s) have at least one event that occurred out of protocol order (NTFD is not strictly increasing): ", paste0(unique(check$USUBJID), collapse = ", ")))
+  }
+
+  check <- df %>%
+    dplyr::filter(ATFD >= 0) %>%
+    dplyr::filter(!is.na(ATFD)) %>%
+    dplyr::filter(NTLD < 0) %>%
+    dplyr::filter(!is.na(NTLD)) %>%
+    dplyr::filter(NTLD != na)
+
+  if (nrow(check)>0) {
+    warning(paste0("The following USUBJID(s) have at least one negative NTLD value after first dose: ", paste0(unique(check$USUBJID), collapse = ", ")))
+  }
+
   check <- df %>%
     dplyr::filter(TIMEF==1)
 
@@ -1112,42 +1258,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     warning(paste0("The following USUBJID(s) have at least one duplicate event: ", paste0(unique(check$USUBJID), collapse = ", ")))
   }
 
-  ###FINAL SORTING/ARRANGEMENT###
-  df <- df %>%
-    dplyr::arrange(USUBJID, ATFD, CMT, EVID) %>%
-    dplyr::mutate(ID = match(USUBJID, unique(df$USUBJID)),
-                  SUBJID = gsub("\\D+", "", USUBJID),
-                  TIMEU = time.units,
-                  LINE = dplyr::row_number(),
-                  DTIM = as.character(DTIM),
-                  FDOSE = as.character(FDOSE),
-                  VERSN = func.version,
-                  BUILD = Sys.Date(),
-                  NSTUDY = ifelse(NSTUDY==na, NA, NSTUDY)) %>%
-    dplyr::group_by(USUBJID) %>%
-    tidyr::fill(NSTUDY, NSTUDYC, .direction="downup") %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(NSTUDY = ifelse(is.na(NSTUDY), na, NSTUDY)) %>%
-    dplyr::mutate_at(.vars = c(ex.col.c, pc.col.c, pd.col.c, cat.cov.c),
-                     .funs = function(x) toupper(x))
-
-  df <- df %>%
-    dplyr::select(C, tidyselect::all_of(stud.col.n), SUBJID, ID, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY, TPT,
-                  EVID, MDV, CMT, AMT, tidyselect::all_of(ex.nonmem), ODV, LDV, tidyselect::all_of(pd.dvs),
-                  BLQ, LLOQ, tidyselect::all_of(ex.col.n), tidyselect::all_of(pc.col.n), tidyselect::all_of(pd.col.n),
-                  tidyselect::all_of(cat.cov.n), tidyselect::all_of(cont.cov), tidyselect::all_of(flags),
-                  LINE, USUBJID, tidyselect::all_of(stud.col.c), VISIT, TPTC, DOMAIN, DVID, DVIDU, TIMEU,
-                  tidyselect::all_of(ex.col.c), tidyselect::all_of(pc.col.c), tidyselect::all_of(pd.col.c),
-                  tidyselect::all_of(cat.cov.c), DTIM, FDOSE, VERSN, BUILD)
-
-  ###FILTER OTHER EVENTS###
-  if (keep.other==F) {
-    df <- df %>%
-      dplyr::filter(EVID!=2) %>%
-      dplyr::mutate(LINE = dplyr::row_number())
-  }
-
-  ###WARNINGS###
   check <- colnames(df)[nchar(colnames(df))>8]
   if (length(check)==1) {
     warning(paste0("The following column name(s) are longer than 8 characters: ", check))
@@ -1198,7 +1308,7 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
   }
 
   if (TRUE %in% (unique(df1$USUBJID) %in% unique(df2$USUBJID)) | TRUE %in% (unique(df2$USUBJID) %in% unique(df1$USUBJID))) {
-    warning("At least one USUBJID exists in both datasets")
+    stop("At least one USUBJID exists in both datasets. Please ensure all USUBJID values are unique.")
   }
 
   if (TRUE %in% (unique(df1$NSTUDYC) %in% unique(df2$NSTUDYC)) | TRUE %in% (unique(df2$NSTUDYC) %in% unique(df1$NSTUDYC))) {
@@ -1219,38 +1329,96 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
   }
 
   if(!is.na(na)) {
-    if(!is.numeric(na)) {stop("na parameter must be numeric")
+    if(!is.numeric(na)) {
+      stop("na parameter must be numeric")
     }
   }
 
-  cmt1 <- df1 %>%
-    dplyr::filter(EVID!=2) %>%
-    dplyr::distinct(DVID, DVIDU, CMT) %>%
-    dplyr::arrange(CMT, DVID) %>%
-    dplyr::select(CMT, DVID1 = DVID, DVIDU1 = DVIDU)
+  dvid1 <- df1 %>%
+    dplyr::filter(EVID==0) %>%
+    dplyr::distinct(DVID, DVIDC, DVIDU) %>%
+    dplyr::arrange(DVIDC) %>%
+    dplyr::select(DVID, DVIDC1 = DVIDC, DVIDU1 = DVIDU)
 
-  cmt2 <- df2 %>%
-    dplyr::filter(EVID!=2) %>%
-    dplyr::distinct(DVID, DVIDU, CMT) %>%
-    dplyr::arrange(CMT, DVID)%>%
-    dplyr::select(CMT, DVID2 = DVID, DVIDU2 = DVIDU)
+  dvid2 <- df2 %>%
+    dplyr::filter(EVID==0) %>%
+    dplyr::distinct(DVID, DVIDC, DVIDU) %>%
+    dplyr::arrange(DVIDC) %>%
+    dplyr::select(DVID, DVIDC2 = DVIDC, DVIDU2 = DVIDU)
 
-  cmt <- cmt1 %>%
-    dplyr::full_join(cmt2, by="CMT") %>%
-    dplyr::mutate(DVIDDIFF = dplyr::case_when(is.na(DVID1) ~ "Y",
-                                              is.na(DVID2) ~ "Y",
-                                              DVID1!=DVID2 ~ "Y",
-                                              TRUE ~ "N"),
+  dvid <- dvid1 %>%
+    dplyr::full_join(dvid2, by=c("DVID")) %>%
+    dplyr::mutate(DVIDCDIFF = dplyr::case_when(is.na(DVIDC1) ~ "Y",
+                                               is.na(DVIDC2) ~ "Y",
+                                               DVIDC1!=DVIDC2 ~ "Y",
+                                               TRUE ~ "N"),
                   DVIDUDIFF = dplyr::case_when(is.na(DVIDU1) ~ "Y",
                                                is.na(DVIDU2) ~ "Y",
                                                DVIDU1!=DVIDU2 ~ "Y",
                                                TRUE ~ "N"))
 
-  if ("Y" %in% cmt$DVIDDIFF) {
-    warning("CMT and DVID assignments are not the same bewteen both datasets")
+  if ("Y" %in% dvid$DVIDDIFF) {
+    stop("DVID and DVIDC observation assignments are not the same bewteen both datasets")
   }
-  if ("Y" %in% cmt$DVIDUDIFF) {
-    warning("CMT and DVIDU assignments are not the same between both datasets")
+  if ("Y" %in% dvid$DVIDUDIFF) {
+    stop("DVID and DVIDU observation assignments are not the same between both datasets")
+  }
+
+  dvid1 <- df1 %>%
+    dplyr::filter(EVID==1) %>%
+    dplyr::distinct(DVID, DVIDC, DVIDU) %>%
+    dplyr::arrange(DVIDC) %>%
+    dplyr::select(DVID, DVIDC1 = DVIDC, DVIDU1 = DVIDU)
+
+  dvid2 <- df2 %>%
+    dplyr::filter(EVID==1) %>%
+    dplyr::distinct(DVID, DVIDC, DVIDU) %>%
+    dplyr::arrange(DVIDC) %>%
+    dplyr::select(DVID, DVIDC2 = DVIDC, DVIDU2 = DVIDU)
+
+  dvid <- dvid1 %>%
+    dplyr::full_join(dvid2, by=c("DVID")) %>%
+    dplyr::mutate(DVIDCDIFF = dplyr::case_when(is.na(DVIDC1) ~ "Y",
+                                               is.na(DVIDC2) ~ "Y",
+                                               DVIDC1!=DVIDC2 ~ "Y",
+                                               TRUE ~ "N"),
+                  DVIDUDIFF = dplyr::case_when(is.na(DVIDU1) ~ "Y",
+                                               is.na(DVIDU2) ~ "Y",
+                                               DVIDU1!=DVIDU2 ~ "Y",
+                                               TRUE ~ "N"))
+
+  if ("Y" %in% dvid$DVIDDIFF) {
+    stop("DVID and DVIDC dose assignments are not the same bewteen both datasets")
+  }
+  if ("Y" %in% dvid$DVIDUDIFF) {
+    stop("DVID and DVIDU dose assignments are not the same between both datasets")
+  }
+
+  for (i in unique(c(df1$CMT[df1$EVID!=2], df2$CMT[df2$EVID!=2]))) {
+    if (!i %in% df1$CMT) {
+      warning(paste("CMT =", i, "not included df1"))
+    }
+
+    if (!i %in% df2$CMT) {
+      warning(paste("CMT =", i, "not included in df2"))
+    }
+
+    if (i %in% df1$CMT & i %in% df2$CMT) {
+      dvid1 <- sort(unique(df1$DVID[df1$CMT==i]))
+      dvid2 <- sort(unique(df2$DVID[df2$CMT==i]))
+      dvid <- dvid1==dvid2
+      if (FALSE %in% dvid) {
+        stop("DVID and CMT assignments are not the same between both datasets")
+      }
+    }
+  }
+
+  for (i in cov_find(df1, cov="units", type="character")) {
+    if (i %in% colnames(df2)) {
+      if(unique(df1[,i])[1]!=unique(df2[,i])[1]) {
+        warning(paste(i, "units are not the same between both datasets"))
+      }
+    }
   }
 
   ###Combine datasets###
@@ -1265,20 +1433,26 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
   ###Rearrange covariate columns###
   cat.cov.n.1 <- cov_find(df1, cov="categorical", type="numeric")
   cont.cov.n.1 <- cov_find(df1, cov="continuous", type="numeric")
+  exp.cov.1 <- cov_find(df1, cov="exposure", type="numeric")
+  ebe.cov.1 <- cov_find(df1, cov="empirical bayes estimate", type="numeric")
   oth.cov.n.1 <- cov_find(df1, cov="other", type="numeric")
 
   cat.cov.c.1 <- cov_find(df1, cov="categorical", type="character")
   oth.cov.c.1 <- cov_find(df1, cov="other", type="character")
+  cont.cov.c.1 <- cov_find(df1, cov="units", type="character")
 
   cat.cov.n.2 <- cov_find(df2, cov="categorical", type="numeric")
   cont.cov.n.2 <- cov_find(df2, cov="continuous", type="numeric")
+  exp.cov.2 <- cov_find(df2, cov="exposure", type="numeric")
+  ebe.cov.2 <- cov_find(df2, cov="empirical bayes estimate", type="numeric")
   oth.cov.n.2 <- cov_find(df2, cov="other", type="numeric")
 
   cat.cov.c.2 <- cov_find(df2, cov="categorical", type="character")
   oth.cov.c.2 <- cov_find(df2, cov="other", type="character")
+  cont.cov.c.2 <- cov_find(df2, cov="units", type="character")
 
-  num.cov <- c(cat.cov.n.1, cat.cov.n.2, cont.cov.n.1, cont.cov.n.2, oth.cov.n.1, oth.cov.n.2)[!duplicated(c(cat.cov.n.1, cat.cov.n.2, cont.cov.n.1, cont.cov.n.2, oth.cov.n.1, oth.cov.n.2))]
-  chr.cov <- c(cat.cov.c.1, cat.cov.c.2, oth.cov.c.1, oth.cov.c.2)[!duplicated(c(cat.cov.c.1, cat.cov.c.2, oth.cov.c.1, oth.cov.c.2))]
+  num.cov <- c(cat.cov.n.1, cat.cov.n.2, cont.cov.n.1, cont.cov.n.2, oth.cov.n.1, oth.cov.n.2, exp.cov.1, exp.cov.2, ebe.cov.1, ebe.cov.2)[!duplicated(c(cat.cov.n.1, cat.cov.n.2, cont.cov.n.1, cont.cov.n.2, oth.cov.n.1, oth.cov.n.2, exp.cov.1, exp.cov.2, ebe.cov.1, ebe.cov.2))]
+  chr.cov <- c(cat.cov.c.1, cat.cov.c.2, oth.cov.c.1, oth.cov.c.2, cont.cov.c.1, cont.cov.c.2)[!duplicated(c(cat.cov.c.1, cat.cov.c.2, oth.cov.c.1, oth.cov.c.2, cont.cov.c.1, cont.cov.c.2))]
 
   df <- df %>%
     dplyr::relocate(tidyselect::all_of(num.cov), .after="DOSEA") %>%
@@ -1348,7 +1522,12 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
       df$TETHNIC[grepl("unk", df$TETHNICC, ignore.case = T)] <- 2
       df$TETHNIC[grepl("other", df$TETHNICC, ignore.case = T)] <- 3
       if(length(sort(unique(df$TETHNIC)))!=length(sort(unique(df$TETHNICC)))) {
-        warning("At least one TETHNIC failed to map. Consider setting demo.map = FALSE.")}}
+        warning("At least one TETHNIC failed to map. Consider setting demo.map = FALSE.")
+      }
+    }
+    else if (substr(i, nchar(i), nchar(i))=="U" & gsub("U$", "", i) %in% num.cov) {
+      next
+    }
     else if (!i %in% c("NSEXC", "TSEXC", "NRACEC", "TRACEC", "NETHNICC", "TETHNICC")) {
       df[,name] <- match(unlist(df[, i]), sort(unique(unlist(df[, i]))))
       if(length(sort(unique(df[, name])))==2) {
@@ -1444,11 +1623,11 @@ pk_define <- function(file, project, variable.list, template,
   ###CREATE DEFINITION FILE###
   df <- utils::read.csv(file, na.strings=".")
   vl <- utils::read.csv(variable.list,
-                        col.names = c("Variable", "Categorization", "Description", "Units", "Comment"))
+                        col.names = c("Variable", "Categorization", "Description", "Comment"))
 
   define <- data.frame("Variable" = colnames(df))
 
-  cmto <- df[df$EVID==0, c("CMT", "DOMAIN", "DVID", "DVIDU")] %>%
+  cmto <- df[df$EVID==0, c("CMT", "DOMAIN", "DVIDC", "DVIDU")] %>%
     dplyr::distinct() %>%
     dplyr::arrange(CMT) %>%
     dplyr::mutate(DOMAIN = dplyr::case_when(DOMAIN=="EX" ~ "(Dose)",
@@ -1456,7 +1635,7 @@ pk_define <- function(file, project, variable.list, template,
                                             DOMAIN=="PD" ~ "(PD)",
                                             DOMAIN=="ADA" ~ "(ADA)"))
 
-  cmtd <- df[df$EVID==1, c("CMT", "DOMAIN", "DVID", "DVIDU")] %>%
+  cmtd <- df[df$EVID==1, c("CMT", "DOMAIN", "DVIDC", "DVIDU")] %>%
     dplyr::distinct() %>%
     dplyr::arrange(CMT) %>%
     dplyr::mutate(DOMAIN = dplyr::case_when(DOMAIN=="EX" ~ "(Dose)",
@@ -1465,7 +1644,15 @@ pk_define <- function(file, project, variable.list, template,
                                             DOMAIN=="ADA" ~ "(ADA)"))
 
   cmt <- data.frame("Variable" = "CMT",
-                    "Values" = c(paste(cmtd$CMT, "=", cmtd$DVID, cmtd$DOMAIN), paste(cmto$CMT, "=", cmto$DVID, cmto$DOMAIN)))
+                    "Values" = c(paste(cmtd$CMT, "=", cmtd$DVIDC, cmtd$DOMAIN), paste(cmto$CMT, "=", cmto$DVIDC, cmto$DOMAIN)))
+
+  dvid <- df[df$EVID==0, c("DVID", "DVIDC", "DVIDU")] %>%
+    dplyr::distinct() %>%
+    dplyr::arrange(DVID)
+
+  dvid1 <- data.frame("Variable" = "DVID",
+                     "Values" = paste(dvid$DVID, "=", dvid$DVIDC)) %>%
+    dplyr::distinct()
 
   exdosu <- unique(unlist(df[df$EVID==1, "DVIDU"]))
 
@@ -1489,14 +1676,38 @@ pk_define <- function(file, project, variable.list, template,
 
   cont.cov <- cov_find(df, cov="continuous", type="numeric")
   cont.cov <- substr(cont.cov, 2, nchar(cont.cov))
+  cont.cov.u <- cov_find(df, cov="units", type="character")
+
+  unts <- df %>%
+    dplyr::filter(EVID!=2) %>%
+    dplyr::select(tidyselect::all_of(cont.cov.u)) %>%
+    dplyr::filter(dplyr::row_number()==1) %>%
+    tidyr::pivot_longer(cols = tidyselect::all_of(cont.cov.u),
+                        values_to = "Units",
+                        names_to = "Variable") %>%
+    dplyr::mutate(Variable = gsub("U$", "", Variable))
+
   vl.cont.cov <- data.frame("Variable" = cont.cov) %>%
     dplyr::left_join(vl, by="Variable") %>%
     dplyr::mutate(Variable = cov_find(df, cov="continuous", type="numeric"),
                   Description = dplyr::case_when(grepl("^B", Variable) ~ paste("Baseline", Description),
                                                  grepl("^T", Variable) ~ paste("Time-varying", Description),
-                                                 TRUE ~ Description))
+                                                 TRUE ~ Description)) %>%
+    dplyr::left_join(unts, by="Variable")
 
-  vl <- dplyr::bind_rows(vl, vl.cat.cov.c, vl.cat.cov.n, vl.cont.cov)
+  vl.cont.cov.u <- data.frame("Variable" = cont.cov) %>%
+    dplyr::left_join(vl, by="Variable") %>%
+    dplyr::mutate(Variable = cov_find(df, cov="units", type="character"),
+                  Description = dplyr::case_when(grepl("^B", Variable) ~ paste("Baseline", Description),
+                                                 grepl("^T", Variable) ~ paste("Time-varying", Description),
+                                                 TRUE ~ Description)) %>%
+    dplyr::mutate(Description = paste(Description, "units"))
+
+
+
+
+  vl <- dplyr::bind_rows(vl, vl.cat.cov.c, vl.cat.cov.n, vl.cont.cov, vl.cont.cov.u) %>%
+    dplyr::relocate(Units, .before="Comment")
 
   cov <- data.frame("Variable" = NA,
                     "Values" = NA)
@@ -1583,7 +1794,7 @@ pk_define <- function(file, project, variable.list, template,
   for (i in dvf) {
     cmtn <- gsub("\\D+", "", i)
     nodvf1 <- data.frame("Variable" = i,
-                         "Values" = c(paste0("0 = At least one observation (CMT = ", cmtn, ")"), paste0("1 = No observations (CMT = ", cmtn, ")")))
+                         "Values" = c(paste0("0 = At least one observation (DVID = ", cmtn, ")"), paste0("1 = No observations (DVID = ", cmtn, ")")))
     nodvf <- dplyr::bind_rows(nodvf, nodvf1)
   }
   nodvf <- nodvf[-1, ]
@@ -1591,7 +1802,7 @@ pk_define <- function(file, project, variable.list, template,
   flgs <- dplyr::bind_rows(c, pdosef, timef, amtf, dupf, noexf, plbof, sparsef, trexf, sdf, impex, impdv, nodvf)
 
   #Combine all values dataframes together
-  values <- dplyr::bind_rows(cmt, cov, evid, mdv, blq, ss, flgs)
+  values <- dplyr::bind_rows(cmt, dvid1, cov, evid, mdv, blq, ss, flgs)
 
   #Finalize definition dataset
   define <- define %>%
@@ -1607,6 +1818,7 @@ pk_define <- function(file, project, variable.list, template,
                                  dplyr::case_when(Variable %in% c("ATFD", "ATLD", "NTFD", "NTLC", "NTLD", "TPT", "DUR") ~ unique(df$TIMEU), #Add time units to these variables
                                                   Variable %in% c("AMT", "DOSEA") ~ exdosu, #Add dose units
                                                   Variable=="RATE" ~ paste0(exdosu, "/", gsub("s$", "", unique(df$TIMEU))),
+                                                  Variable=="NDAY" ~ "days",
                                                   TRUE ~ Units))) %>%
     dplyr::left_join(values, by="Variable") %>% #join values
     dplyr::mutate(Units = dplyr::case_when(is.na(Units) ~ "",
@@ -1827,7 +2039,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       df.total <- df.total %>% dplyr::left_join(df.temp, by="Item")
     }
 
-    df.total$DVID = "General"
+    df.total$DVIDC = "General"
     df.total <- df.total[, c(ncol(df.total), 1, 3:(ncol(df.total)-1), 2)]
 
     df.total.f <- df.total[1,]
@@ -1835,7 +2047,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
     df.total <- dplyr::bind_rows(df.total.f, df.total)
 
     ###BLQ summary###
-    df.blq <- data.frame(DVID = unique(df$DVID[df$EVID==0]),
+    df.blq <- data.frame(DVIDC = unique(df$DVIDC[df$EVID==0]),
                          Total = NA) %>%
       tidyr::crossing(Item = c(0, 1, 2, 3)) #1 = total, #2 = quantifiable, # = post-dose BLQ
 
@@ -1843,13 +2055,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 
     for (k in 1:nrow(df.blq)) {
       if (df.blq$Item[k]==1) {
-        df.blq$Total[k] <- nrow(df[df$DVID==df.blq$DVID[k] & df$EVID==0, ])
+        df.blq$Total[k] <- nrow(df[df$DVIDC==df.blq$DVIDC[k] & df$EVID==0, ])
       }
       else if (df.blq$Item[k]==2) {
-        df.blq$Total[k] <- nrow(df[df$DVID==df.blq$DVID[k] & df$EVID==0 & df$BLQ==0, ])
+        df.blq$Total[k] <- nrow(df[df$DVIDC==df.blq$DVIDC[k] & df$EVID==0 & df$BLQ==0, ])
       }
       else if (df.blq$Item[k]==3) {
-        df.blq$Total[k] <- nrow(df[df$DVID==df.blq$DVID[k] & df$EVID==0 & df$BLQ==2, ])
+        df.blq$Total[k] <- nrow(df[df$DVIDC==df.blq$DVIDC[k] & df$EVID==0 & df$BLQ==2, ])
       }
     }
 
@@ -1871,13 +2083,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 
       for (k in 1:nrow(df.temp)) {
         if (df.temp$Item[k]==1) {
-          df.temp$Temp[k] <- nrow(df[df[,i]==j & df$DVID==df.temp$DVID[k] & df$EVID==0, ])
+          df.temp$Temp[k] <- nrow(df[df[,i]==j & df$DVIDC==df.temp$DVIDC[k] & df$EVID==0, ])
         }
         else if (df.temp$Item[k]==2) {
-          df.temp$Temp[k] <- nrow(df[df[,i]==j & df$DVID==df.temp$DVID[k] & df$EVID==0 & df$BLQ==0, ])
+          df.temp$Temp[k] <- nrow(df[df[,i]==j & df$DVIDC==df.temp$DVIDC[k] & df$EVID==0 & df$BLQ==0, ])
         }
         else if (df.temp$Item[k]==3) {
-          df.temp$Temp[k] <- nrow(df[df[,i]==j & df$DVID==df.temp$DVID[k] & df$EVID==0 & df$BLQ==2, ])
+          df.temp$Temp[k] <- nrow(df[df[,i]==j & df$DVIDC==df.temp$DVIDC[k] & df$EVID==0 & df$BLQ==2, ])
         }
       }
 
@@ -1893,8 +2105,8 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         }
       }
 
-      colnames(df.temp) <- c("DVID", "Item", j)
-      df.blq <- df.blq %>% dplyr::left_join(df.temp, by=c("DVID", "Item"))
+      colnames(df.temp) <- c("DVIDC", "Item", j)
+      df.blq <- df.blq %>% dplyr::left_join(df.temp, by=c("DVIDC", "Item"))
     }
 
     df.blq <- df.blq[,c(1, 2, 4:ncol(df.blq), 3)] %>%
@@ -1934,8 +2146,6 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         flextable::merge_h(i = merge.col) %>%
         flextable::align(i = merge.col, align="center") %>%
         flextable::bold(i = merge.col) %>%
-        flextable::font(fontname = docx.font, part = "all") %>%
-        flextable::fontsize(size = docx.size, part = "all") %>%
         flextable::bold(part = "header")
 
       widths <- flextable::dim_pretty(df.summary1)
@@ -1973,8 +2183,6 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         flextable::merge_h(i = merge.col) %>%
         flextable::align(i = merge.col, align="center") %>%
         flextable::bold(i = merge.col) %>%
-        flextable::font(fontname = pptx.font, part = "all") %>%
-        flextable::fontsize(size = pptx.size, part = "all") %>%
         flextable::bold(part = "header")
 
       tmplt <- officer::read_pptx(path=pptx.template) %>%
@@ -2293,6 +2501,8 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 #' @param id.by id variable to merge covariates
 #' @param time.by time variable to merge covariates
 #' @param direction fill direction for time-varying covariates
+#' @param exp treats new covariates as exposure metrics when TRUE
+#' @param ebe treats new covariates as empirical bayes estimates when TRUE
 #' @param cov.rnd covariate rounding parameter
 #' @param na value to replace NA numeric covariates
 #' @param demo.map toggle pre-set numeric values for SEX, RACE, and ETHNIC demographic variables
@@ -2301,8 +2511,8 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 #' @return PK(PD) dataset with additional covariates
 #' @export
 cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
-                      direction="downup", cov.rnd=NA, na=-999,
-                      demo.map=T, keep.other=T) {
+                      direction="downup", exp = F, ebe = F,
+                      cov.rnd=NA, na=-999, demo.map=T, keep.other=T) {
 
 
   ###QC id.by###
@@ -2330,6 +2540,19 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
 
   if (length(direction)>1) {
     stop("cov_apply can only fill in one direction.")
+  }
+
+  ###QC ebe and exp###
+  if (!is.logical(exp)) {
+    stop("exp must be TRUE or FALSE")
+  }
+
+  if (!is.logical(ebe)) {
+    stop("ebe must be TRUE or FALSE")
+  }
+
+  if (ebe==TRUE & exp==TRUE) {
+    stop("Only one of exp or ebe can be selected as TRUE.")
   }
 
   ###QC cov.rnd###
@@ -2477,11 +2700,28 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   cat.cov.n <- c()
   cat.cov.c <- c()
   cont.cov <- c()
+  cont.cov.units <- c()
+  exp.cov <- c()
+  ebe.cov <- c()
 
   for (i in 1:length(colnames(cov))) {
     name = colnames(cov)[i]
     if (name %in% c(id.by, time.by)) {next}
-    if (name=="SEX" & demo.map==T) {
+    else if (exp==T) {
+      if (nchar(name)>7) {
+        stop(paste(name, "column name in cov must be 7 characters or fewer."))
+      }
+      exp.cov <- c(exp.cov, paste0("C", name))
+      colnames(cov)[i] <- paste0("C", name)
+    }
+    else if (ebe==T) {
+      if (nchar(name)>7) {
+        stop(paste(name, "column name in cov must be 7 characters or fewer."))
+      }
+      ebe.cov <- c(ebe.cov, paste0("I", name))
+      colnames(cov)[i] <- paste0("I", name)
+    }
+    else if (name=="SEX" & demo.map==T) {
       if (is.na(time.by)) {
         nname <- paste0("N", name)
       }
@@ -2547,13 +2787,38 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
         stop(paste(name, "column name in cov must be 7 characters or fewer."))
       }
       if (is.na(time.by)) {
-        cont.cov <- c(cont.cov, paste0("B", name))
-        colnames(cov)[i] <- paste0("B", name)
+        index_of_unit_column <- grep(paste0(name, "U"), names(cov))
+        if (length(index_of_unit_column) != 1) {
+          stop(paste("All numerical covariates in cov need units."))
+        }
+        if(length(sort(unique(unlist(cov[,paste0(name, "U")]))))>1) {
+          stop(paste(name, "has more than one unit."))
+        }
+        baseline_name <- paste0("B", name)
+        baseline_name_units <- paste0("B", name, "U")
+        colnames(cov)[i] <- baseline_name
+        colnames(cov)[index_of_unit_column] <- baseline_name_units
+        cont.cov <- append(cont.cov, baseline_name)
+        cont.cov.units <- append(cont.cov.units, baseline_name_units)
       }
       else {
-        cont.cov <- c(cont.cov, paste0("T", name))
-        colnames(cov)[i] <- paste0("T", name)
+        index_of_unit_column <- grep(paste0(name, "U"), names(cov))
+        if (length(index_of_unit_column) != 1) {
+          stop(paste("All numerical covariates in cov need units."))
+        }
+        if(length(sort(unique(unlist(cov[,paste0(name, "U")]))))>1) {
+          stop(paste(name, "has more than one unit."))
+        }
+        baseline_name <- paste0("T", name)
+        baseline_name_units <- paste0("T", name, "U")
+        colnames(cov)[i] <- baseline_name
+        colnames(cov)[index_of_unit_column] <- baseline_name_units
+        cont.cov <- append(cont.cov, baseline_name)
+        cont.cov.units <- append(cont.cov.units, baseline_name_units)
       }
+    }
+    else if (substr(name, nchar(name), nchar(name))=="U" & gsub("U$", "", name) %in% colnames(cov)) {
+      next
     }
     else {
       if (nchar(name)>6) {
@@ -2575,10 +2840,10 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
     }
   }
 
-  covs <- c(cat.cov.n, cat.cov.c, cont.cov)
+  covs <- c(cat.cov.n, cat.cov.c, cont.cov, cont.cov.units, exp.cov, ebe.cov)
 
   ###FILL###
-  if (is.na(time.by)) { #subject-level covariate
+  if (is.na(time.by)) {
     df <- df %>%
       dplyr::left_join(cov, by=id.by)
   }
@@ -2634,7 +2899,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
 
   ###Round covariates###
   if(is.numeric(cov.rnd)) {
-    for (i in c(cat.cov.n, cont.cov)) {
+    for (i in c(cat.cov.n, cont.cov, ebe.cov, exp.cov)) {
       cov.num <- round(df[, i], cov.rnd)
       df <- df %>%
         dplyr::select(-tidyselect::all_of(i)) %>%
@@ -2643,7 +2908,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   }
 
   ###Fill NA values###
-  for (i in c(cat.cov.n, cont.cov)) {
+  for (i in c(cat.cov.n, cont.cov, ebe.cov, exp.cov)) {
     df[is.na(df[, i]) | df[, i]==-999, i] <- na
   }
 
@@ -2652,16 +2917,40 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   df.cat.cov.c <- cov_find(df, cov="categorical", type="character")
 
   if(!is.null(cat.cov.n)) {
-    df <- df %>%
-      dplyr::relocate(tidyselect::all_of(cat.cov.n), .after=df.cat.cov.n[length(df.cat.cov.n)])
+    if (!is.null(df.cat.cov.n)) {
+      df <- df %>%
+        dplyr::relocate(tidyselect::all_of(cat.cov.n), .after=df.cat.cov.n[length(df.cat.cov.n)])
+    }
+    else {
+      df <- df %>%
+        dplyr::relocate(tidyselect::all_of(cat.cov.n), .after="DOSEA")
+    }
   }
   if(!is.null(cat.cov.c)) {
-    df <- df %>%
-      dplyr::relocate(tidyselect::all_of(cat.cov.c), .after=df.cat.cov.c[length(df.cat.cov.c)])
+    if (!is.null(df.cat.cov.c)) {
+      df <- df %>%
+        dplyr::relocate(tidyselect::all_of(cat.cov.c), .after=df.cat.cov.c[length(df.cat.cov.c)])
+    }
+    else {
+      df <- df %>%
+        dplyr::relocate(tidyselect::all_of(cat.cov.c), .after="DOSEA")
+    }
   }
   if(!is.null(cont.cov)) {
     df <- df %>%
       dplyr::relocate(tidyselect::all_of(cont.cov), .before="PDOSEF")
+  }
+  if(!is.null(exp.cov)) {
+    df <- df %>%
+      dplyr::relocate(tidyselect::all_of(exp.cov), .before="PDOSEF")
+  }
+  if(!is.null(ebe.cov)) {
+    df <- df %>%
+      dplyr::relocate(tidyselect::all_of(ebe.cov), .before="PDOSEF")
+  }
+  if(!is.null(cont.cov.units)) {
+    df <- df %>%
+      dplyr::relocate(tidyselect::all_of(cont.cov.units), .before="DTIM")
   }
 
   ###Final filter###
@@ -2690,14 +2979,10 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   return(df)
 }
 
-
-
-
-
 #' Find covariates of particular types
 #'
-#' Can filter for categorical, continuous, or other covariates
-#' Can filter for numeric or character type
+#' Can filter for categorical, continuous, or other covariates.
+#' Can filter for numeric or character type.
 #'
 #' @param df PK(PD) dataset
 #' @param cov covariate distribution
@@ -2740,17 +3025,51 @@ cov_find <- function(df, cov, type) {
       stop("continuous covariates must be numeric only")
     }
     else {
-      stop("type must be numeric or character")
+      stop("type must be numeric")
+    }
+  }
+
+  else if (cov=="units") {
+    if (type=="numeric") {
+      stop("units must be numeric only")
+    }
+    else if (type=="character") {
+      covs <- colnames(df2)[grepl("^B", colnames(df2)) | grepl("^T", colnames(df2))]
+      covs <- covs[grepl("U$", covs)]
+      return(covs)
+    }
+    else {
+      stop("type must be character")
+    }
+  }
+
+  else if (cov=="exposure") {
+    if (type=="numeric") {
+      covs <- colnames(df1)[grepl("^C", colnames(df1))]
+      return(covs)
+    }
+    else {
+      stop("type must be numeric")
+    }
+  }
+
+  else if (cov=="empirical bayes estimate") {
+    if (type=="numeric") {
+      covs <- colnames(df1)[grepl("^I", colnames(df1))]
+      return(covs)
+    }
+    else {
+      stop("type must be numeric")
     }
   }
 
   else if (cov=="other") {
     if (type=="numeric") {
-      covs <- colnames(df1)[!grepl("^N", colnames(df1)) & !grepl("^T", colnames(df1)) & !grepl("^B", colnames(df1))]
+      covs <- colnames(df1)[!grepl("^N", colnames(df1)) & !grepl("^T", colnames(df1)) & !grepl("^B", colnames(df1)) & !grepl("^C", colnames(df1)) & !grepl("^I", colnames(df1))]
       return(covs)
     }
     else if (type=="character") {
-      covs <- colnames(df2)[!grepl("^N", colnames(df2)) & !grepl("^T", colnames(df2))]
+      covs <- colnames(df2)[!grepl("^N", colnames(df2)) & !grepl("^T", colnames(df2)) & !grepl("^C", colnames(df2)) & !grepl("^I", colnames(df2))]
       return(covs)
     }
     else {
@@ -2759,30 +3078,34 @@ cov_find <- function(df, cov, type) {
   }
 
   else {
-    stop("cov must be categorical,  continuous, or other")
+    stop("cov must be categorical, continuous, exposure, empirical bayes estiamte, or other")
   }
 }
 
-
-
 #' Create and maintain a dataset version log
 #'
-#' Version log is outputted as a .docx file
-#' Document tracks changes in subject count, record count, new variables, and changing variables
-#' User comments in the word document are preserved between versions
+#' Version log is outputted as a .docx file.
+#' Document tracks changes in subject count, record count, new variables, and changing variables.
+#' User comments in the word document are preserved between versions.
 #'
 #' @param file filepath of new dataset
 #' @param orig original dataset flag
 #' @param outdir output directory, defaults to dataset directory
 #' @param prevdata comparison dataset filepath
-#' @param template template .docx filepath
+#' @param template template docx filepath
 #' @param comp_var grouping variables for comparison
+#' @param src_data string to describe source data
+#' @param font font style
+#' @param size font size
+#' @param orient document orientation
 #'
-#' @return version log as a .docx file
+#' @return version log as a docx file
 #' @export
 version_log <- function(file, orig = F, outdir = NULL,
-                        prevdata = NULL, template,
-                        comp_var) {
+                        prevdata = NULL, template = NULL,
+                        comp_var, src_data = "",
+                        font = "Times New Roman", size = 9,
+                        orient = "landscape") {
   data <- utils::read.csv(file, na.strings=".")
   name <- basename(file)
   if(is.null(outdir)) {
@@ -2795,33 +3118,63 @@ version_log <- function(file, orig = F, outdir = NULL,
     VersionLog <- data.frame(
       ROW = c("1"),
       DATASET = c(name),
+      NSTUD = c(as.character(length(unique(data$NSTUDY)))),
       NSUB = c(as.character(length(unique(data$USUBJID)))),
       NROW = c(as.character(nrow(data))),
       NEW_VAR = c("Original Dataset"),
       CHG_VAR = c("Original Dataset"),
       REF_ROW = c("-"),
+      SRCDATA = c(src_data),
       COMMENTS = c("")
     )
     VersionLog2 <- VersionLog %>%
       flextable::flextable() %>% #creates flextable object
       flextable::border_inner_h(part = "body", #removes inside borders
                                 border = officer::fp_border(color = "grey", width = 0.1, style="solid")) %>%
-      flextable::font(fontname = "Times New Roman", part = "all") %>% #declare font name
-      flextable::fontsize(size = 11, part = "all") %>% #declare font size
+      flextable::font(fontname = font, part = "all") %>% #declare font name
+      flextable::fontsize(size = size, part = "all") %>% #declare font size
       flextable::bold(part = "header") %>% #bold the header
-      flextable::width(j = c(1), width = 0.53, unit = "in") %>% #set column width for particular columns
-      flextable::width(j = c(2), width = 2.33, unit = "in") %>%
-      flextable::width(j = c(3), width = 0.55, unit = "in") %>%
-      flextable::width(j = c(4), width = 0.65, unit = "in") %>%
-      flextable::width(j = c(5), width = 1.15, unit = "in") %>%
-      flextable::width(j = c(6), width = 1.15, unit = "in") %>%
-      flextable::width(j = c(7), width = 0.91, unit = "in") %>%
-      flextable::width(j = c(8), width = 1.73, unit = "in") %>%
-      flextable::height(height = 0.3, unit = "in") %>% #set row height
-      flextable::align(j = c(1, 3, 4, 7), align = "center")
-    tmplt <- officer::read_docx(path = template) %>% #read in template form
-      flextable::body_add_flextable(VersionLog2) %>% #add flextable to the document
-      print(target = paste0(outpath, "/VersionLog.docx"))
+      flextable::align(align = "center") %>%
+      flextable::align(align = "center", part = "header")
+    if(orient == "landscape") {
+      VersionLog2 <- VersionLog2 %>%
+        flextable::width(j = c(1), width = 0.46, unit = "in") %>% #set column width for particular columns
+        flextable::width(j = c(2), width = 1.51, unit = "in") %>%
+        flextable::width(j = c(3), width = 0.57, unit = "in") %>%
+        flextable::width(j = c(4), width = 0.48, unit = "in") %>%
+        flextable::width(j = c(5), width = 0.55, unit = "in") %>%
+        flextable::width(j = c(6), width = 1.03, unit = "in") %>%
+        flextable::width(j = c(7), width = 1.03, unit = "in") %>%
+        flextable::width(j = c(8), width = 0.77, unit = "in") %>%
+        flextable::width(j = c(9), width = 1.3, unit = "in") %>%
+        flextable::width(j = c(10), width = 1.3, unit = "in") %>%
+        flextable::height(height = 0.3, unit = "in") #set row height
+    }
+    else {
+      VersionLog2 <- VersionLog2 %>%
+        flextable::width(j = c(1), width = 0.3, unit = "in") %>% #set column width for particular columns
+        flextable::width(j = c(2), width = 1.2, unit = "in") %>%
+        flextable::width(j = c(3), width = 0.4, unit = "in") %>%
+        flextable::width(j = c(4), width = 0.3, unit = "in") %>%
+        flextable::width(j = c(5), width = 0.4, unit = "in") %>%
+        flextable::width(j = c(6), width = 0.7, unit = "in") %>%
+        flextable::width(j = c(7), width = 0.7, unit = "in") %>%
+        flextable::width(j = c(8), width = 0.5, unit = "in") %>%
+        flextable::width(j = c(9), width = 1, unit = "in") %>%
+        flextable::width(j = c(10), width = 1, unit = "in") %>%
+        flextable::height(height = 0.3, unit = "in") #set row height
+    }
+    if(is.null(template)) {
+      sect_properties <- officer::prop_section(
+        page_size = officer::page_size(
+          orient = "landscape"))
+      flextable::save_as_docx(VersionLog2, path = paste0(outpath, "/VersionLog.docx"), pr_section = sect_properties)
+    }
+    else {
+      tmplt <- officer::read_docx(path = template) %>% #read in template form
+        flextable::body_add_flextable(VersionLog2) %>% #add flextable to the document
+        print(target = paste0(outpath, "/VersionLog.docx"))
+    }
   }
   else {
     if(orig==F & !is.null(outdir) &
@@ -2886,11 +3239,13 @@ version_log <- function(file, orig = F, outdir = NULL,
     }
     VersionLog3 <- VersionLog2 %>%
       dplyr::add_row(DATASET = name,
+                     NSTUD = as.character(length(unique(data$NSTUDY))),
                      NSUB = as.character(length(unique(data$USUBJID))),
                      NROW = as.character(nrow(data)),
                      NEW_VAR = new_var2,
                      CHG_VAR = changes3,
-                     REF_ROW = ref_row$ROW) %>%
+                     REF_ROW = ref_row$ROW,
+                     SRCDATA = src_data) %>%
       dplyr::mutate(
         ROW = as.character(dplyr::row_number())
       ) %>%
@@ -2900,24 +3255,53 @@ version_log <- function(file, orig = F, outdir = NULL,
       flextable::flextable() %>% #creates flextable object
       flextable::border_inner_h(part = "body", #removes inside borders
                                 border = officer::fp_border(color = "grey", width = 0.1, style="solid")) %>%
-      flextable::font(fontname = "Times New Roman", part = "all") %>% #declare font name
-      flextable::fontsize(size = 11, part = "all") %>% #declare font size
+      flextable::font(fontname = font, part = "all") %>% #declare font name
+      flextable::fontsize(size = size, part = "all") %>% #declare font size
       flextable::bold(part = "header") %>% #bold the header
-      flextable::width(j = c(1), width = 0.53, unit = "in") %>% #set column width for particular columns
-      flextable::width(j = c(2), width = 2.33, unit = "in") %>%
-      flextable::width(j = c(3), width = 0.55, unit = "in") %>%
-      flextable::width(j = c(4), width = 0.65, unit = "in") %>%
-      flextable::width(j = c(5), width = 1.15, unit = "in") %>%
-      flextable::width(j = c(6), width = 1.15, unit = "in") %>%
-      flextable::width(j = c(7), width = 0.91, unit = "in") %>%
-      flextable::width(j = c(8), width = 1.73, unit = "in") %>%
-      flextable::height(height = 0.3, unit = "in") %>% #set row height
-      flextable::align(j = c(1, 3, 4, 7), align = "center")
-    tmplt <- officer::read_docx(path = template) %>% #read in template form
-      flextable::body_add_flextable(VersionLog4) %>% #add flextable to the document
-      print(target = paste0(outpath, "/VersionLog.docx"))
+      flextable::align(align = "center") %>%
+      flextable::align(align = "center", part = "header")
+    if(orient == "landscape") {
+      VersionLog4 <- VersionLog4 %>%
+        flextable::width(j = c(1), width = 0.46, unit = "in") %>% #set column width for particular columns
+        flextable::width(j = c(2), width = 1.51, unit = "in") %>%
+        flextable::width(j = c(3), width = 0.57, unit = "in") %>%
+        flextable::width(j = c(4), width = 0.48, unit = "in") %>%
+        flextable::width(j = c(5), width = 0.55, unit = "in") %>%
+        flextable::width(j = c(6), width = 1.03, unit = "in") %>%
+        flextable::width(j = c(7), width = 1.03, unit = "in") %>%
+        flextable::width(j = c(8), width = 0.77, unit = "in") %>%
+        flextable::width(j = c(9), width = 1.3, unit = "in") %>%
+        flextable::width(j = c(10), width = 1.3, unit = "in") %>%
+        flextable::height(height = 0.3, unit = "in") #set row height
+    }
+    else {
+      VersionLog4 <- VersionLog4 %>%
+        flextable::width(j = c(1), width = 0.3, unit = "in") %>% #set column width for particular columns
+        flextable::width(j = c(2), width = 1.2, unit = "in") %>%
+        flextable::width(j = c(3), width = 0.4, unit = "in") %>%
+        flextable::width(j = c(4), width = 0.3, unit = "in") %>%
+        flextable::width(j = c(5), width = 0.4, unit = "in") %>%
+        flextable::width(j = c(6), width = 0.7, unit = "in") %>%
+        flextable::width(j = c(7), width = 0.7, unit = "in") %>%
+        flextable::width(j = c(8), width = 0.5, unit = "in") %>%
+        flextable::width(j = c(9), width = 1, unit = "in") %>%
+        flextable::width(j = c(10), width = 1, unit = "in") %>%
+        flextable::height(height = 0.3, unit = "in") #set row height
+    }
+    if(is.null(template)) {
+      sect_properties <- officer::prop_section(
+        page_size = officer::page_size(
+          orient = "landscape"))
+      flextable::save_as_docx(VersionLog4, path = paste0(outpath, "/VersionLog.docx"), pr_section = sect_properties)
+    }
+    else {
+      tmplt <- officer::read_docx(path = template) %>% #read in template form
+        flextable::body_add_flextable(VersionLog4) %>% #add flextable to the document
+        print(target = paste0(outpath, "/VersionLog.docx"))
+    }
   }
 }
+
 
 
 #' Export a standard variable list to support the pk_define() function.
