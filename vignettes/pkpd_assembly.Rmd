@@ -40,7 +40,7 @@ ABC102 administers two oral doses to each subject, once at baseline and once on 
 ex <- EX %>%
   dplyr::mutate(CMT = 1) %>%
   dplyr::select(USUBJID, STUDYID, EXSTDTC, VISIT, EXSTDY, EXTPTNUM, EXDOSE,
-                CMT, EXTRT, TPTC, EXROUTE, EXDOSFRQ, EXDOSU)
+                CMT, EXTRT, EXTPT, EXROUTE, EXDOSFRQ, EXDOSU)
 ```
 
 ### PK event preparation
@@ -88,10 +88,11 @@ pkdf <- apmx::pk_build(ex = ex,
 The `cov_apply()` function will add additional covariates from a source data frame.  
   
 In this example, we will add demographic covariates to the pk dataset. AGE is continuous,
-but SEX, RACE, and ETHNIC are categorical. The function will convert AGE to BAGE (baseline age) and convert SEX, RACE, and ETHNIC to NSEXC, NRACEC, and NETHNICC (character label) and NSEX, NRACE, NETHNIC (encoded numeric).  
+but SEX, RACE, and ETHNIC are categorical. The function will convert AGE to BAGE (baseline age) and convert SEX, RACE, and ETHNIC to NSEXC, NRACEC, and NETHNICC (character label) and NSEX, NRACE, NETHNIC (encoded numeric). We must add our own unit variable AGEU so the function can track the units of the continuous covariate.    
 ```{r}
 dm <- DM %>%
-  dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC)
+  dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC) %>%
+  dplyr::mutate(AGEU = "years")
 
 pkdf <- apmx::pk_build(ex = ex,
                        pc = pc,
@@ -113,6 +114,7 @@ pkdf <- apmx::pk_build(ex = ex,
 apmx::cov_find(pkdf, cov="categorical", type="numeric")
 apmx::cov_find(pkdf, cov="categorical", type="character")
 apmx::cov_find(pkdf, cov="continuous", type="numeric")
+apmx::cov_find(pkdf, cov="units", type="character")
 ```
 
 Time-varying covariates can also be added to a dataset with either `cov_apply()` or `pk_build()`.  
@@ -121,8 +123,9 @@ lb <- LB %>%
   dplyr::filter(LBCOMPFL=="Y") %>%
   dplyr::filter(LBPARAMCD=="ALB") %>%
   dplyr::mutate(ALB = as.numeric(LBORRES),
-                DTIM = LBDT) %>%
-  dplyr::select(USUBJID, DTIM, ALB)
+                DTIM = LBDT,
+                ALBU = LBORRESU) %>%
+  dplyr::select(USUBJID, DTIM, ALB, ALBU)
 
 pkdf <- apmx::pk_build(ex = ex,
                        pc = pc,
@@ -190,7 +193,7 @@ pkdf <- apmx::pk_build(ex = ex,
                        time.rnd = 3,
                        cov.rnd = 1)
 ```
-This error message let's you know that events occurred out of protocol order. This is indicated by the nominal times, which are not increasing at row 6.  
+This warning message let's you know that events occurred out of protocol order. This is indicated by the nominal times, which are not increasing at row 6.  
   
 Next, let's remove one of the date/times from the ex domain to make it missing.  
 ```{r, warning=T}
