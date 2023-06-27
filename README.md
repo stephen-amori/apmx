@@ -30,8 +30,9 @@ General comments:
     + YYYY:mm:dd HH:MM  
     + YYYY:mm:dd (this format is not accepted for ex, pc, or pd events)  
 * All covariates are automatically renamed based on type and categorical covariates are automatically mapped to a numeric type in the following manner:  
-    + All character-type covariates are considered categorical. The numeric covariate column name begins with an "N" (subject-level) or "T" (time-varying) and the character label ends with a "C".  
-    + All numeric-type covariates are considered continuous. The covariate column name begins with "B" (baseline) or "T" (time-varying). There are no character columns associated with continuous covariates.  
+    + All character-type covariates are considered categorical. The given covariate will be mapped to a numeric value and the column name will start with a prefix "N" (subject-level) or "T" (time-varying). The character description is retained and the column name will end with the suffix "C". For example, an input subject-level covariate "SEX" will mapped to "NSEX" (numeric) and "NSEXC" (character).  
+    + All numeric-type covariates are considered continuous. The covariate column name will start with a prefix "B" (baseline) or "T" (time-varying).  
+    + All numeric-type covariates must also have an associated character column for units. For example, an input dataframe with covariate "AGE" must have an accompanying column "AGEU".  
 * The study label `STUDY` must be provided in either the `ex` domain or `sl.cov` domain.  
 * Missing date/times can be handled three different ways with the `impute` parameter.  
     + `impute` can be left empty, which will not impute times for any event missing `DTIM`.  
@@ -68,7 +69,8 @@ apmx derived attribute names and definitions:
 * `NTLC`: nominal time since last cycle  
 * `NTLD`: nominal time since last (most recent) dose  
 * `EVID`: event ID (NONMEM-required)  
-* `MDV`: missing dependent variable (NONMEM-required)  
+* `MDV`: missing dependent variable (NONMEM-required)
+* `DVID`: numeric mapping of input DVID  
 * `LDV`: log-transformed dependent variable  
 * `BDV`: baseline dependent variable (for PD events only)  
 * `DDV`: delta from baseline dependent variable (for PD events only)  
@@ -78,7 +80,8 @@ apmx derived attribute names and definitions:
     + `BLQ = 1` when observation is BLQ and prior to first dose  
     + `BLQ = 2` when observation is BLQ and after first dose  
 * `DOSEA`: most recently administered dose amount  
-* `DOMAIN`: event domain  
+* `DOMAIN`: event domain
+* `DVIDC`: character label for DVID  
 * `TIMEU`: units for all time variables  
 * `FDOSE`: date/time of first dose  
 * `VERSN`: apmx package version number
@@ -108,13 +111,17 @@ The function confirms the analytes and compartments are in agreement between bot
 
 #### cov_find()
 `cov_find()` will identify the columns in a PK(PD) dataset that belong to a certain covariate class.  
-Covariates can be "categorical", "continuous", or "other".  
+Covariates can be "categorical", "continuous", "exposure", "empirical bayes estimate", or "other".  
 Types can be "numeric" or "character".  
 
 #### cov_apply()
 `cov_apply()` will add additional covariates to a PK(PD) dataset already built by `pk_build()`.  
 It can apply covariates of any type, either subject-level or time-varying.  
 Covariates can be merged by any ID variable (USUBJID, SUBJID, or ID) or any time variable (ATFD, ATLD, NTFD, NTLC, NTLD, NDAY, TPT).  
+The same prefix and suffix system is applied to covariates built with `cov_apply()`  
+* Exposure metrics can be added with this function and will receive the prefix "C"  
+* Empirical bayes estimates can be added with this functoin and will receive the prefix "I"  
+
 
 #### pk_write()
 `pk_write()` will write out a PK(PD) dataset as a .csv file to the filepath of your choice in a NONMEM-ready format.  
@@ -129,7 +136,6 @@ Two other inputs are required:
     + Variable: variable name (covariates just need the root term for proper definitions. For example, the variable for covariates "NSEX" and "NSEXC" only need to be listed once as "SEX")  
     + Category: desired variable category  
     + Description: desired variable description (covariates are automatically detected as "subject-level" or "time-varying" and labeled as such, you only need to provide the root definition. For example, the description for "SEX" can be listed "sex". For NSEX, the definition file would read "Subject sex".)  
-    + Units: desired variable units for continuous covariates (time units and event units are automatically derived)  
     + Comment: desired comment  
 * `template`: optoinal template .docx document you wish to use. The definition table will append to the end of the document. If you leave the template blank, the definition table will read into a blank document.  
   
