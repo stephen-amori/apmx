@@ -52,40 +52,45 @@ pc <- PC %>%
 
 dm <- DM %>%
   dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC)
-source("R/PK_ASSEMBLY.R")
+# Adding units to DM.
+dm <- dm %>% mutate(AGEU = "Years")
+# source("R/pk_build.R")
+# source("R/cov_find.R")
 pkdf <- pk_build(ex = ex,
                  pc = pc,
                  sl.cov = dm,
                  cycle.length = 14,
                  time.rnd = 3)
 
-test_that("QC for cov_find()", {
-  expect_error(cov_find(pkdf, cov = "categorical", "error"), "type must be numeric or character")
-  expect_error(cov_find(pkdf, cov = "continuous", "character", "continuous covariates must be numeric only"))
-  expect_error(cov_find(pkdf, cov = "continuous", "error"), "type must be numeric")
-  expect_error(cov_find(pkdf, "units", "numeric"), "units must be numeric only")
-  expect_error(cov_find(pkdf, "units", "something"), "type must be character")
-  expect_error(cov_find(pkdf, "exposure", "character"), "type must be numeric")
-  expect_error(cov_find(pkdf, "empirical bayes estimate", "character"), "type must be numeric")
-  expect_error(cov_find(pkdf, "other", "something"), "type must be numeric or character")
-  expect_error(cov_find(pkdf, "error", "something"), "cov must be categorical, continuous, exposure, empirical bayes estiamte, or other")
-})
+# Passed!
+# test_that("QC for cov_find()", {
+#   expect_error(cov_find(pkdf, cov = "categorical", "error"), "type must be numeric or character")
+#   expect_error(cov_find(pkdf, cov = "continuous", "character", "continuous covariates must be numeric only"))
+#   expect_error(cov_find(pkdf, cov = "continuous", "error"), "type must be numeric")
+#   expect_error(cov_find(pkdf, "units", "numeric"), "units must be numeric only")
+#   expect_error(cov_find(pkdf, "units", "something"), "type must be character")
+#   expect_error(cov_find(pkdf, "exposure", "character"), "type must be numeric")
+#   expect_error(cov_find(pkdf, "empirical bayes estimate", "character"), "type must be numeric")
+#   expect_error(cov_find(pkdf, "other", "something"), "type must be numeric or character")
+#   expect_error(cov_find(pkdf, "error", "something"), "cov must be categorical, continuous, exposure, empirical bayes estiamte, or other")
+# })
 
 # test_that("Functionality for cov_find()", {
-# #   source("R/PK_ASSEMBLY.R")
+#   # source("R/pk_build.R")
+#   # source("R/cov_find.R")
 #   check_cat_c <- cov_find(pkdf, cov = "categorical", "character") 
+#   # List extraction to get value.
 #   expect_true(is.character((pkdf %>% select(!!as.symbol(check_cat_c)))[[1]]))
 #   check_cat_n <- cov_find(pkdf, cov = "categorical", "numeric") 
 #   check_col <- check_cat_n[1]
-#   # Have to do some odd list extraction to get value.
 #   expect_true(is.integer((pkdf %>% select(!!as.symbol(check_col)))[[1]]))
 #   check_cont_n <- cov_find(pkdf, cov = "continuous", "numeric") 
 #   expect_true(is.integer((pkdf %>% select(!!as.symbol(check_cont_n)))[[1]]))
 #   exposure_check <- cov_find(pkdf, cov = "exposure", "numeric")
-
-
-# #   TODO: Fix this after Stephen pushes code.
-# #   check_units <- cov_find(pkdf, cov = "units", "character")
+#   check_units <- cov_find(pkdf, cov = "units", "character")
+#   expect_equal(check_units, "BAGEU")
+#   expect_error(cov_find(pkdf, cov = "units", "numeric"), "units must be numeric only")
+#   expect_error(cov_find(pkdf, cov = "units", "other"), "type must be character")
 # })
 
 

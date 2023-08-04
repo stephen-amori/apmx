@@ -46,6 +46,9 @@ pc <- PC %>%
 dm <- DM %>%
   dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC)
 
+# Adding units to DM.
+dm <- dm %>% mutate(AGEU = "Years")
+
 pkdf_cov_me <- pk_build(ex = ex, pc = pc,
                 BDV=T, DDV=T, PDV=T,
                 time.rnd=3, dv.rnd=3, cov.rnd=3)
