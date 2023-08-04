@@ -1,0 +1,15 @@
+{
+    "cSpell.enableFiletypes": [
+        "r"
+    ],
+    "r.alwaysUseActiveTerminal": true,
+    "r.bracketedPaste": true,
+    "spellright.language": [
+        "en"
+    ],
+    "spellright.documentTypes": [
+        "markdown",
+        "latex",
+        "plaintext"
+    ]
+}
