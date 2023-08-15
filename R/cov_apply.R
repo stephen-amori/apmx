@@ -87,22 +87,22 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   SUBJID <- NSTUDY <- NSTUDYC <- TIMEU <- CMT <- KEEP <- NULL
   # browser()
   ###QC id.by###
+  if (length(id.by)>1) { #only one id type
+    stop("cov_apply can only fill by one ID type.")
+  }
   if (!(as.character(id.by) %in% c("USUBJID", "SUBJID", "ID"))) { #limit id.by inputs
     stop("id.by must be one of the following options: USUBJID, SUBJID, ID")
   }
 
-  if (length(id.by)>1) { #only one id type
-    stop("cov_apply can only fill by one ID type.")
-  }
-
   ###QC time.by###
+  if (length(time.by)>1) {
+    stop("cov_apply can only fill by one time type.")
+  }
   if (!(is.na(time.by) | as.character(time.by) %in% c(NA, "DTIM", "ATFD", "NTFD", "ATLD", "NTLD", "NTLC", "NDAY"))) {
     stop("time.by must be one of the following options: NA (subject-level attribute), DTIM, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY")
   }
 
-  if (length(time.by)>1) {
-    stop("cov_apply can only fill by one time type.")
-  }
+
 
   ###QC direction###
   if (!(direction %in% c("down", "up", "downup", "updown"))) {
