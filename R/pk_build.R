@@ -84,7 +84,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   NTLC <- RATE <- LDV <- C <- SUBJID <- ID <- MDV <- LLOQ <- LINE <- NULL
   VISIT <- TPTC <- DOMAIN <- DVIDU <- VERSN <- BUILD <- DNTFD <- TIMEF <- NULL
 
-  func.version <- "0.3.0"
+  func.version <- "0.3.1"
 
   ###EX QC###
   cdisc.cols.ex <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",
@@ -727,11 +727,12 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                           IMPDTIM = as.character(IMPDTIM))
       df <- dplyr::group_by(df, USUBJID)
       df <- tidyr::fill(df, EXATFD, EXNTFD, IMPDTIM, IMPEX, .direction="downup")
+      df <- dplyr::ungroup(df)
       df <- dplyr::mutate(df,
                           IMPDV = ifelse(EVID==0 & is.na(DTIM), 1, IMPDV),
                           IMPDTIM = ifelse(nchar(IMPDTIM)==10, paste(IMPDTIM, "00:00:00"), IMPDTIM),
                           IMPDTIM = as.POSIXct(IMPDTIM, tz="UTC", format="%Y-%m-%d %H:%M:%S"),
-                          ATFD = dplyr::case_when(EVID==0 & is.na(ATFD) & !is.na(DTIM) ~ as.numeric(difftime(DTIM, IMPDTIM, units=time.units)),
+                          ATFD = dplyr::case_when(EVID==0 & is.na(ATFD) & !is.na(DTIM) ~ as.numeric(difftime(DTIM, FDOSE, units=time.units)),
                                                   EVID==0 & is.na(ATFD) & is.na(EXATFD) ~ NTFD,
                                                   EVID==0 & is.na(ATFD) ~ EXATFD-EXNTFD+NTFD,
                                                   TRUE ~ ATFD),
@@ -741,7 +742,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                                                   TRUE ~ ATLD),
                           NTLD = dplyr::case_when(IMPDV==1 | IMPFEX==1 | IMPEX==1 ~ NTFD-EXNTFD,
                                                   TRUE ~ NTLD))
-      df <- dplyr::ungroup(df)
       df <- dplyr::select(df, -PCATFD, -PCTPT, -EXATFD, -EXNTFD, -IMPDTIM)
       df <- dplyr::arrange(df, USUBJID, ATFD, EVID, CMT)
     }
