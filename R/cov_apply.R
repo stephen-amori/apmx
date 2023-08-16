@@ -85,7 +85,6 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
                       cov.rnd=NA, na=-999, demo.map=T, keep.other=T) {
   DTIM <- FDOSE <- .data <- EVID <- ATFD <- USUBJID <- ID <- NULL
   SUBJID <- NSTUDY <- NSTUDYC <- TIMEU <- CMT <- KEEP <- NULL
-  # browser()
   ###QC id.by###
   if (length(id.by)>1) { #only one id type
     stop("cov_apply can only fill by one ID type.")
@@ -102,16 +101,16 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
     stop("time.by must be one of the following options: NA (subject-level attribute), DTIM, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY")
   }
 
-
-
   ###QC direction###
+    if (length(direction)>1) {
+    stop("cov_apply can only fill in one direction.")
+  }
+
   if (!(direction %in% c("down", "up", "downup", "updown"))) {
     stop("direction must be one of the following (tidy) options: down, up, downup, updown")
   }
 
-  if (length(direction)>1) {
-    stop("cov_apply can only fill in one direction.")
-  }
+
 
   ###QC ebe and exp###
   if (!is.logical(exp)) {
