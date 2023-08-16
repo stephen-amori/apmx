@@ -1,56 +1,57 @@
-library(testthat)
-library(tidyr)
-library(apmx)
-library(tibble)
-library(dplyr)
+# library(testthat)
+# library(tidyr)
+# library(apmx)
+# library(tibble)
+# library(dplyr)
 
-#################### START: DUMMY DATA ####################
-ex_iso_dates <- c( "2023-05-17T08:30:00Z",
-            "2025-12-25T12:00:00Z",
-            "2021-01-01T00:00:01Z",
-            "2022-11-11T11:11:11Z",
-            "2024-02-29T14:29:00Z",
-            "2020-07-04T18:00:00Z",
-            "2023-10-31T23:59:59Z",
-            "2022-02-14T20:00:00Z",
-            "2021-12-31T23:59:59Z",
-            "2025-06-30T13:00:00Z"
-)
-EX <- data.frame(
-    STUDYID = rep("STUDYID", 6),
-    USUBJID = c("A1", "A1", "B2", "B2", "C3", "C3"),
-    DTIM = ex_iso_dates[1:6],
-    NDAY = c(1, 2, 3, 2, 5, 4),
-    TPT = rep(1, 6),
-    AMT = c(87,34,13,65,23,53),
-    VISIT = c("2023-02-05", "2023-02-03","2023-02-04","2023-02-05","2023-02-01","2023-02-10"),
-    CMT = c(6,0,5,1,2,3),
-    TPTC = c("Baseline", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"),
-    DVID = c("BP", "BP", "WT", "CHOL", "WT", "BP"),
-    DVIDU = c("mg/dL", "mg/dL", "kg", "mmHg", "kg", "mg/dL"),
-    ROUTE = rep("oral", 6),
-    FRQ = rep("QD", 6),
-    BAGE = c(41,31,42,25,27,29)
-)
-PC <- data.frame(
-    USUBJID = c("A1", "A1", "B2", "B2", "C3", "C3"),
-    DTIM = ex_iso_dates[1:6],
-    NDAY = c(1, 2, 3, 2, 5, 4),
-    DOMAIN = rep("PC", 6),
-    TPT = rep(1, 6), 
-    ODV = rep(1, 6),
-    LLOQ = rep(0.05, 6),
-    CMT = c(6,0,5,1,2,3),
-    VISIT = c("2023-02-05", "2023-02-03","2023-02-04","2023-02-05","2023-02-01","2023-02-10"),
-    TPTC = c("Baseline", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"),
-    DVID = c("BP", "BP", "WT", "CHOL", "WT", "BP"),
-    DVIDU = c("mg/dL", "mg/dL", "kg", "mmHg", "kg", "mg/dL")
-)
+# #################### START: DUMMY DATA ####################
+# ex_iso_dates <- c( "2023-05-17T08:30:00Z",
+#             "2025-12-25T12:00:00Z",
+#             "2021-01-01T00:00:01Z",
+#             "2022-11-11T11:11:11Z",
+#             "2024-02-29T14:29:00Z",
+#             "2020-07-04T18:00:00Z",
+#             "2023-10-31T23:59:59Z",
+#             "2022-02-14T20:00:00Z",
+#             "2021-12-31T23:59:59Z",
+#             "2025-06-30T13:00:00Z"
+# )
+# EX <- data.frame(
+#     STUDYID = rep("STUDYID", 6),
+#     USUBJID = c("A1", "A1", "B2", "B2", "C3", "C3"),
+#     DTIM = ex_iso_dates[1:6],
+#     NDAY = c(1, 2, 3, 2, 5, 4),
+#     TPT = rep(1, 6),
+#     AMT = c(87,34,13,65,23,53),
+#     VISIT = c("2023-02-05", "2023-02-03","2023-02-04","2023-02-05","2023-02-01","2023-02-10"),
+#     CMT = c(6,0,5,1,2,3),
+#     TPTC = c("Baseline", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"),
+#     DVID = c("BP", "BP", "WT", "CHOL", "WT", "BP"),
+#     DVIDU = "mg/dl",
+#     ROUTE = rep("oral", 6),
+#     FRQ = rep("QD", 6),
+#     BAGE = c(41,31,42,25,27,29)
+# )
+# PC <- data.frame(
+#     USUBJID = c("A1", "A1", "B2", "B2", "C3", "C3"),
+#     DTIM = ex_iso_dates[1:6],
+#     NDAY = c(1, 2, 3, 2, 5, 4),
+#     DOMAIN = rep("PC", 6),
+#     TPT = rep(1, 6), 
+#     ODV = rep(1, 6),
+#     LLOQ = rep(0.05, 6),
+#     CMT = c(6,0,5,1,2,3),
+#     VISIT = c("2023-02-05", "2023-02-03","2023-02-04","2023-02-05","2023-02-01","2023-02-10"),
+#     TPTC = c("Baseline", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"),
+#     DVID = c("BP", "BP", "WT", "CHOL", "WT", "BP"),
+#     DVIDU = "mg/dl"
+# )
 
-#################### END: DUMMY DATA ####################
+# #################### END: DUMMY DATA ####################
 
 # test_that("Filter out (new addition!)", {
-#     # source("R//PK_ASSEMBLY.R")
+#     # source("R/pk_build.R")
+#     # source("R/pk_summarize.R")
 
 #     pkdf <- pk_build(ex = EX, pc = PC)
 #     dir <- "C://Users//michael.dick//Documents//apmx//temp-csvs//test1.csv"
@@ -67,7 +68,7 @@ PC <- data.frame(
 # })
 
 
-# This writes to a file and we check if they exist.
+# # This writes to a file and we check if they exist.
 # test_that("Writing CSVs", {
 #     # source("R//PK_ASSEMBLY.R")
 #     pkdf <- pk_build(ex = EX, pc = PC)

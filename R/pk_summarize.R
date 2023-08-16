@@ -80,9 +80,10 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
                          docx.font="Times New Roman", docx.size=9,
                          docx.template=NULL, pptx.template=NULL,
                          pptx.font="Times New Roman", pptx.size=12,
-                         docx.orientation = "portrait", dir = NA) {
+                         docx.orientation = "portrait", dir = NA, ignore_request = c()) {
 
   EVID <- Covariate <- Order <- ID <- NULL
+
   ###QC###
   #make sure filepath is valid
   data.dir <- this.path::dirname2(file) #directory of the dataset
@@ -91,7 +92,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
   }
 
   data.name <- this.path::basename2(file) #dataset name including extension
-  if (!grepl(".csv$", data.name)) {
+  if (!grepl("\\.csv$", data.name)) {
     stop(paste("filepath must include document name and .csv suffix."))
   }
 
@@ -161,6 +162,98 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
   if(!docx.orientation %in% c("portrait", "landscape")) {
     stop("docx.orientation parameter must be portrait or landscape.")
   }
+
+  # START:  MICHAEL'S ADDITIONS
+  # Filter will happen before any kind of processing.
+  # DESCRIPTION: The first thing that will happen is that we will se if there is any records to be
+  # ignored, and if there is we will places the "*Ignores recrods flagged by ...", and then after
+  # that we see if ignore.c is true, appending to the list of ignored records. We read from the 
+  # CSV to edit the data that the user has specified. Next, we break apart the vector of characters.
+  # It's critical that the user only puts the operations in only the pattern of column operations and conditions.
+  # After all of the QA, we pass the arguments into the filter function, and all of the operations
+  # are flipped to make it easier for the user to see what actions have been performed on their data.
+  ignored_records <- c()
+  
+  if (ignore.c == T || (length(ignore_request) != 0)) {
+    ignored_records <- c(ignored_records, "*Ignores records flagged by")
+  }
+  if (ignore.c == T) {
+    ignored_records <- c(ignored_records, "C")
+  }
+  if (length(ignore_request) != 0) {
+    valid_operations <- c("==", "<", "<=", ">=", ">", "!=")
+    df <- read.csv(file)
+    for (item in ignore_request) {
+
+      # Break apart item to get colnames, operation, and value.
+      item_separated_by_spaces <- strsplit(item, " ")
+      column <- item_separated_by_spaces[[1]][1]
+      operation <- item_separated_by_spaces[[1]][2]
+      condition <- item_separated_by_spaces[[1]][3]
+      # QA for requied items.
+      if (is.na(column)) {
+        stop("A column is required for this ignore request.")
+      }
+      else if (is.na(operation)) {
+        stop("An operation is required for this ignore request.")
+      }
+      else if (is.na(condition)) {
+        stop("A condition is required for this ignore request.")
+      }
+      # Check to see if column is valid.
+      if (!any(column %in% names(df))) {
+        stop(column, " is not a column in the dataset.")
+      }
+      # Check to see if the operation is valid.
+      if (!any(operation %in% valid_operations)) {
+        stop(operation, " is not a valid operation. Must be one of the following: ==, <, <=, >, >=, !=")
+      }
+
+      # Check if this is a valid record.
+      if (!any(condition %in% df[, column]) && (operation == "==" || operation == "!=")) {
+        stop(condition, " is not a record in the dataset.")
+      }
+
+      df <- df %>% filter(eval(parse(text = item)))
+
+     
+
+      # This will flip all of the operations that are done.
+      if (operation == "==") {
+        operation <- "!="
+        item = paste(column, operation, condition)
+      }
+      else if (operation == "!=") {
+        operation <- "=="
+        item = paste(column, operation, condition)
+      }
+      else if (operation == "<") {
+        operation <- ">"
+        item = paste(column, operation, condition)
+      }
+      else if (operation == "<=") {
+        operation <- ">="
+        item = paste(column, operation, condition)
+      }
+      else if (operation == ">") {
+        operation <- "<"
+        item = paste(column, operation, condition)
+      }
+      else if (operation == ">=") {
+        operation <- "<="
+        item = paste(column, operation, condition)
+      }
+
+       # Add item to the ignored footer.
+      ignored_records <- c(ignored_records, item)
+      
+    }
+    temp_dir <- getwd()
+    temp_dir <- paste0(temp_dir, '/temp.csv')
+    write.csv(df, file = temp_dir)
+    file <- temp_dir
+  }
+  # END:  MICHAEL'S ADDITIONS.
 
   if (docx.orientation=="portrait") {
     maxwidth <- 7
@@ -352,6 +445,21 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
                                           j = 1, width = maxwidth - result.col * (ncol(df.summary)-1))
         }
       }
+
+      # START: Michael's additions
+      # DESCRIPTION: This just addes to the footer of all of the operations on the data.
+      if (length(ignore_request) != 0) {
+        ignored_string <- paste(ignored_records, collapse = ", ")
+      }
+      else {
+        ignored_string <- ignored_records
+      }
+      
+      if (ignore.c==T || length(ignore_request) != 0) {
+        df.summary1 <- df.summary1 %>%
+          flextable::add_footer_lines(values = ignored_string)
+      }
+      # END:   Michael's additions
 
       if (ignore.c==T) {
         df.summary1 <- flextable::add_footer_lines(df.summary1,
