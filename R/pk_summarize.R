@@ -214,7 +214,9 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         stop(condition, " is not a record in the dataset.")
       }
 
-      df <- df %>% filter(eval(parse(text = item)))
+      # df <- df %>% filter(eval(parse(text = item)))
+      df <- dplyr::filter(df, eval(parse(text = item)))
+
 
      
 
@@ -456,15 +458,17 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       }
       
       if (ignore.c==T || length(ignore_request) != 0) {
-        df.summary1 <- df.summary1 %>%
-          flextable::add_footer_lines(values = ignored_string)
+        # df.summary1 <- df.summary1 %>%
+        #   flextable::add_footer_lines(values = ignored_string)
+        df.summary1 <- flextable::add_footer_lines(df.summary1, values = ignored_string)
+
       }
       # END:   Michael's additions
 
-      if (ignore.c==T) {
-        df.summary1 <- flextable::add_footer_lines(df.summary1,
-                                                   values = "*Ignores records flagged by C")
-      }
+      # if (ignore.c==T) {
+      #   df.summary1 <- flextable::add_footer_lines(df.summary1,
+      #                                              values = "*Ignores records flagged by C")
+      # }
 
       tmplt <- officer::read_docx(path=docx.template)
       tmplt <- flextable::body_add_flextable(tmplt, df.summary1)
@@ -599,9 +603,16 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         }
       }
 
-      if (ignore.c==T) {
-        cov1 <- flextable::add_footer_lines(cov1, values = "*Ignores records flagged by C")
+      # if (ignore.c==T) {
+      #   cov1 <- flextable::add_footer_lines(cov1, values = "*Ignores records flagged by C")
+      # }
+
+      # START: Michael's additions
+      # DESCRIPTION: This just addes to the footer of all of the operations on the data.
+      if (ignore.c==T || length(ignore_request) != 0) {
+        cov1 <- flextable::add_footer_lines(cov1, values = ignored_string)
       }
+      # END:   Michael's additions
 
       tmplt <- officer::read_docx(path=docx.template)
       tmplt <- flextable::body_add_flextable(tmplt, cov1)
@@ -771,9 +782,16 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
           }
         }
 
-        if (ignore.c==T) {
-          cov1 <- flextable::add_footer_lines(cov1, values = "*Ignores records flagged by C")
-        }
+        # if (ignore.c==T) {
+        #   cov1 <- flextable::add_footer_lines(cov1, values = "*Ignores records flagged by C")
+        # }
+      # START: Michael's additions
+      # DESCRIPTION: This just addes to the footer of all of the operations on the data.      
+      if (ignore.c==T || length(ignore_request) != 0) {
+        cov1 <- flextable::add_footer_lines(cov1, values = ignored_string)
+
+      }
+      # END:   Michael's additions
 
         tmplt <- officer::read_docx(path=docx.template)
         tmplt <- flextable::body_add_flextable(tmplt, cov1)
