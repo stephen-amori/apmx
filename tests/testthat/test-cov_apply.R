@@ -233,6 +233,3 @@ test_that("Check final filter order", {
   check <- cov_apply(df = pkdf_cov_me, cov = dm, id.by = "USUBJID", time.by = "ATLD", cov.rnd = 3, demo.map = T)
   expect_equal(nrow(check), 446)
 })
-
-
-

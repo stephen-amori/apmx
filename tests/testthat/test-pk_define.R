@@ -100,9 +100,11 @@ test_that("pk_define QC Checks", {
     pkdf <- pk_build(ex = EX, pc = PC)
     # Use line below if using testthat.
     pk_write(pkdf, file = "test-pk-define-files/pkdf.csv")
-    # Use line below if using R console.
+
+    # Use line below if using R console. (Using devtools::test() uses a different directory.)
     # pk_write(pkdf, file = "tests/testthat/test-pk-define-files/pkdf.csv")
     # unlink("tests/testthat/test-pk-define-files/pkdf.csv")
+
     expect_error(pk_define(file = "not-valid-file"), "not-valid-file is not a valid filepath.")
     expect_error(pk_define(file = "tests/testthat/test-pk-define-files/pkdf"),
                          "filepath must include document name and .csv suffix.")

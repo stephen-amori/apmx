@@ -101,7 +101,6 @@ test_that("PK Combine QC Triggering Events", {
     EX$FAILURE <- 22
     pkdf <- pk_build(ex = EX, pc = PC)
     pkdf2 <- pk_build(ex = EX2, pc = PC2)
-    # combined_df <- pk_combine(pkdf, pkdf2)
     expect_warning(pk_combine(pkdf, pkdf2), "Column names do not match between both datasets")
     # Removing the FAILURE column.
     EX <- EX %>% select(-FAILURE)

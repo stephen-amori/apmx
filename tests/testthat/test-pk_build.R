@@ -432,11 +432,6 @@ test_that("checking for missing rows.", {
     df$USUBJID[9] = NA
     expect_error(pk_build(df), "USUBJID missing in ex for at least 1 row.")
 
-    # Introduce multiple missing rows in CMT.
-    # TODO: check with Stephen and Ethan.
-    # df$USUBJID = letters[1:10]
-    # df$CMT[2] = NA
-    # expect_error(pk_build(df), "CMT missing in ex for at least 1 row.")
 })
 
 test_that("Check for STUDY are character types", {
@@ -502,9 +497,6 @@ test_that("DTIM in ISO 8601 Format", {
     names(df) <- test_ex_cols
     expect_error(pk_build(df), "DTIM in ex is not ISO 8601 format.")
 
-    # Now putting correcting the issue.
-    # df$DTIM <- iso_dates
-    # pk_build(df)
 })
 
 test_that("If ADDL exists so must II", {
@@ -585,11 +577,6 @@ test_that("Testing NDAY with 0, II documented while ADDL is NA, and ADDL documen
     df$II <- 1:10
     expect_error(pk_build(df), "At least one row in ex has a documented II when ADDL is NA.")
 
-    # Now we are going to change II to all documented, and ADDL to one NA. 
-    # This does not work! Either I have a misunderstanding, or this is not correctly implemented.
-    # df$ADDL[5] <- NA
-    # df$II <- 1:10
-    # expect_error(pk_build(df), "At least one row in ex has a documented II when ADDL is NA.")
 })
 
 test_that("Testing NDAY with invalid values.", {
@@ -626,9 +613,6 @@ test_that("Testing NDAY with invalid values.", {
                      cmt        = 11:20)
     names(df) <- test_ex_cols
     expect_error(pk_build(df), "NDAY in ex has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.")
-    # Works with all negatives.
-    # df$NDAY <- -10:-1
-    # pk_build(df)
 })
 
 test_that("Required PD Columns", {
@@ -817,8 +801,6 @@ test_that("PD, NDAY in pd has 0 measurement.", {
     names(pd) <- pd_test_columns
     pd$NDAY[3] <- 0
     expect_error(pk_build(test_ex, test_pc, pd), "NDAY in pd has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.") 
-    # pd$NDAY[3] <- 1341
-    # ayo <- pk_build(test_ex, test_pc, pd)
 })
 
 test_that("sl.cov Tests", { 
@@ -852,27 +834,6 @@ test_that("sl.cov Tests", {
     sl_cov_list[[2]]$USUBJID <- "a"
     sl_cov_list[[3]]$USUBJID <- "a"
     expect_error(pk_build(test_ex, test_pc, sl.cov = sl_cov_list), "sl.cov has duplicate USUBJID rows.")
-    # Now making the subjects unique again.
-    sl_cov_list[[1]]$USUBJID <- letters[1:10]
-    sl_cov_list[[2]]$USUBJID <- letters[1:10]
-    sl_cov_list[[3]]$USUBJID <- letters[1:10]
-    sl_cov_list[[3]]$CMT <- 1:10
-    # expect_error(pk_build(test_ex, test_pc, sl.cov = sl_cov_list), "CMT column is duplicated in sl.cov and another dataset. Please include this column in one dataset only.")
-    # Removing CMT column from the last tibble in the list.
-    sl_cov_list[[3]] <- sl_cov_list[[3]] %>% select(-CMT)
-
-    # Make sl.cov a dataframe 
-    sl_cov_df <- data.frame(
-        USUBJID = letters[11:16],
-        RANDOM   = c(1:6)
-    )
-    # This will build a PK(PD) data frame, but will proceed with TWO warnings:
-    # Warning messages:
-    # 1: In pk_build(test_ex, test_pc, sl.cov = sl_cov_df) :
-    # The following USUBJID(s) have PKPD events but are not in sl.cov: a, b, c, d, e, f, g, h, i, j
-    # 2: In pk_build(test_ex, test_pc, sl.cov = sl_cov_df) :
-    # The following USUBJID(s) have at least one event with missing ATFD: c
-    #     expect_warning(pk_build(test_ex, test_pc, sl.cov = sl_cov_df))
 })
 
 test_that("Test tv.cov (Time Varying Covariates)", {
@@ -895,7 +856,6 @@ test_that("Test tv.cov (Time Varying Covariates)", {
     tv_cov_df$AST <- c(19,13,16,20,21)
     tv_cov_df$ALT <- c(60,30,20,41,32)
     tv_cov_df$STUDY <- 10:14
-    # expect_error(pk_build(test_ex, test_pc, tv.cov = tv_cov_df), "STUDY column is duplicated in tl.cov and another dataset. Please include this column in one dataset only")
 
     # Removing dupe column
     tv_cov_df <- subset(tv_cov_df, select = -c(STUDY))
@@ -929,13 +889,9 @@ test_that("Rounding QC", {
     # source("R//PK_ASSEMBLY.R")
     # pk_build(ex = test_ex, pc = test_pc, time.rnd = 0.25)
     expect_error(pk_build(ex = test_ex, pc = test_pc, time.rnd = 0.25), "time.rnd parameter must an integer \\(the number of rounded decimal points\\).")
-    # expect_error(pk_build(test_ex, test_pc, time.rnd = T), "time.rnd parameter must be FALSE or integer \\(the number of rounded decimal points\\).")
     expect_error(pk_build(ex = test_ex, pc = test_pc, amt.rnd  = 0.25))
-    # expect_error(pk_build(test_ex, test_pc, amt.rnd  = T), "amt.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
     expect_error(pk_build(test_ex, test_pc, dv.rnd   = 0.25))
-    # expect_error(pk_build(test_ex, test_pc, dv.rnd   = T), "dv.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
     expect_error(pk_build(test_ex, test_pc, cov.rnd  = 0.25))
-    # expect_error(pk_build(test_ex, test_pc, cov.rnd  = T), "cov.rnd parameter must be FALSE or integer (the number of rounded decimal points).")
 })
 
 test_that("BDV/DDV/PDV QC", {
@@ -1119,26 +1075,11 @@ test_that("Dose and obsevation calculations", {
 test_that("PD Processing", {
     # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
-    # Issue is happening because dvids is defined in PC section, but called without PC.
     pk <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, BDV = T, DDV = T, PDV = T)
     pattern <- rep(NA, 20)
     expect_equal(pk$BDV, pattern)
     class(pattern) <- "numeric"
     expect_equal(pk$DDV, pattern)
-    # expect_equal(pk$PDV, pattern)
-    # Testing when PDOS is 1 and BDV is not NA.
-    # test_ex$DTIM <- NA
-    # Need to try and get ATFD <= 0 and EVID = 0 because
-    # I need BDV and what not to be not NA! :)
-    # pk <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, impute = 2, BDV = F)
-
-    # pk_write(pk, "C://Users//michael.dick//Documents//apmx//test.csv")
-     
-    # pk_summarize(file = "C://Users//michael.dick//Documents//apmx//test.csv",
-    #                     strat.by = "NSTUDYC",
-    #                     ignore.c = T, 
-    #                     na = -999,
-    #                     docx = T)
 })
 
 test_that("Pre-Processing Covariates", {
@@ -1187,7 +1128,7 @@ test_that("Join Time-Varying Covariates", {
 })
 
 test_that("NODV_F", {
-    #     source("R//PK_ASSEMBLY.R")
+    # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
     pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
                     sl.cov = test_sl_cov_list, demo.map = T)
@@ -1247,11 +1188,6 @@ test_that("SPARSEF", {
 
 test_that("PDOSEF, TIMEF, PLBOF", {
     # source("R//PK_ASSEMBLY.R")
-
-    #####################################
-    # Would like to test when test when #
-    # ATFD < 0.                         #
-    #####################################
 
     pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
                     sl.cov = test_sl_cov_list, demo.map = T)
@@ -1391,24 +1327,17 @@ test_that("Warnings", {
     warnings_ex$NDAY = rep(1, 6)
     warnings_pc$NDAY = rep(1, 6)
     warnings_ex$AT
-        #####################################
-        # TODO:                             #
-        # Need line 1255 to trigger!        #
-        #####################################
 
     warnings_ex$LONGCOLNAME = 1:6
     warning_messages <- purrr::quietly(pk_build)(warnings_ex, pc = warnings_pc, time.units = "days")
     expect_equal(warning_messages$warnings[1], "The following column name(s) are longer than 8 characters: LONGCOLNAME")
-    # pk_build(warnings_ex, pc = warnings_pc, time.units = "days", impute = 2)
 })
 
 test_that("Warning messages for covariates", {
     # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
     test_tv.cov$SEX <- c("F", "F", "F", "M", "F", "M", "M", "M", "ASFAFS", "M")
-    # test_tv.cov$SEX <- 3
     test_ex$NDAY = -1
-    # test_pc$NDAY = 1
     test_ex$TPT = 1
     test_tv.cov$WEIGHT = 20
     test_tv.cov$WEIGHTU = "lbs"
@@ -1416,8 +1345,6 @@ test_that("Warning messages for covariates", {
     expect_equal(warning_messages$warnings[3], "NSEX and TSEX are not equivalent at first dose (baseline).")
     expect_equal(warning_messages$warnings[6], "BWEIGHT and TWEIGHT are not equivalent at first dose (baseline).")
 })
-
-# This is to check if the pk_build() function still works.
 
 test_that("Snapshots", {
     local_edition(3)

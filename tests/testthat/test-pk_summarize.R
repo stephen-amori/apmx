@@ -95,13 +95,12 @@ test_that("Testing Word and PowerPoint", {
     # source("R//PK_ASSEMBLY.R")
     pkdf <- pk_build(ex = EX, pc = PC)
     working_dir <- getwd()
-    # DEBUG:
+    # DEBUG: (These filepaths are for when you're not using devtools::test().)
     # data_dir <- paste0(working_dir, "/tests/testthat/test-pk-summarize-files/test1.csv")
     
     data_dir <- paste0(working_dir, "/test-pk-summarize-files/BLQ_by_NSTUDYC.csv")
     pk_write(pkdf, data_dir)
     pk_summarize(file = data_dir)
-    # Now read in file and check certain rec
 
     # DEBUG:
     # check_blq <- read.csv(paste0(working_dir, "/tests/testthat/test-pk-summarize-files/BLQ_by_NSTUDYC.csv"))

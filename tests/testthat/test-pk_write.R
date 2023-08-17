@@ -1,5 +1,3 @@
-# Define some tests
-# library(tidyr)
 test_that("apmx::pk_write writes a CSV file", {
 
   # Create a temporary file
