@@ -181,7 +181,7 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
     if (!i %in% df2$CMT) {
       warning(paste("CMT =", i, "not included in df2"))
     }
-
+    
     if (i %in% df1$CMT & i %in% df2$CMT) {
       dvid1 <- sort(unique(df1$DVID[df1$CMT==i]))
       dvid2 <- sort(unique(df2$DVID[df2$CMT==i]))

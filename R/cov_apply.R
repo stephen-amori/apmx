@@ -85,33 +85,32 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
                       cov.rnd=NA, na=-999, demo.map=T, keep.other=T) {
   DTIM <- FDOSE <- .data <- EVID <- ATFD <- USUBJID <- ID <- NULL
   SUBJID <- NSTUDY <- NSTUDYC <- TIMEU <- CMT <- KEEP <- NULL
-
   ###QC id.by###
+  if (length(id.by)>1) { #only one id type
+    stop("cov_apply can only fill by one ID type.")
+  }
   if (!(as.character(id.by) %in% c("USUBJID", "SUBJID", "ID"))) { #limit id.by inputs
     stop("id.by must be one of the following options: USUBJID, SUBJID, ID")
   }
 
-  if (length(id.by)>1) { #only one id type
-    stop("cov_apply can only fill by one ID type.")
-  }
-
   ###QC time.by###
+  if (length(time.by)>1) {
+    stop("cov_apply can only fill by one time type.")
+  }
   if (!(is.na(time.by) | as.character(time.by) %in% c(NA, "DTIM", "ATFD", "NTFD", "ATLD", "NTLD", "NTLC", "NDAY"))) {
     stop("time.by must be one of the following options: NA (subject-level attribute), DTIM, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY")
   }
 
-  if (length(time.by)>1) {
-    stop("cov_apply can only fill by one time type.")
+  ###QC direction###
+    if (length(direction)>1) {
+    stop("cov_apply can only fill in one direction.")
   }
 
-  ###QC direction###
   if (!(direction %in% c("down", "up", "downup", "updown"))) {
     stop("direction must be one of the following (tidy) options: down, up, downup, updown")
   }
 
-  if (length(direction)>1) {
-    stop("cov_apply can only fill in one direction.")
-  }
+
 
   ###QC ebe and exp###
   if (!is.logical(exp)) {
@@ -169,11 +168,10 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
       stop(paste(i, "column not in PKPD dataframe. Cannot merge with covariate dataframe."))
     }
   }
-
   if (!is.na(time.by)) {
     if (time.by=="DTIM") {
       if(!("FDOSE" %in% colnames(df))) {
-        stop(paste(df, "must contain FDOSE (date/time of first dose) if merging with DTIM."))
+        stop(paste("Dataframe (df) must contain FDOSE (date/time of first dose) if merging with DTIM."))
       }
 
       if(FALSE %in% grepl("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}", df$DTIM[!is.na(df$DTIM)])) {
@@ -236,9 +234,8 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   if (TRUE %in% is.na(df[, id.by])) {
     stop(paste(id.by, "is missing for at least one row."))
   }
-
-  if (length(unique(df[, id.by]))>length(unique(df[, id.by]))) {
-    warning(paste("At least one subject is included in", df, "but not in", cov))
+  if (nrow(unique(df[, id.by])) > length(unique(cov[, id.by]))) {
+    warning("At least one subject is included in the dataframe (df), but not in covariate dataframe (cov).")
   }
 
   if (!is.na(time.by)) {

@@ -83,7 +83,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   NSTUDYC <- PDOS <- DUPF <- AMTF <- MAX <- SPARSEF <- SDF <- NOEXF <- NULL
   NTLC <- RATE <- LDV <- C <- SUBJID <- ID <- MDV <- LLOQ <- LINE <- NULL
   VISIT <- TPTC <- DOMAIN <- DVIDU <- VERSN <- BUILD <- DNTFD <- TIMEF <- NULL
-
+  dvids <- NULL
   func.version <- "0.3.1"
 
   ###EX QC###
@@ -314,7 +314,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     usubjid <- unique(c(usubjid, pc$USUBJID))
     dvids <- unique(pc$DVID)
   }
-
   ###PD QC###
   pd.col.n <- c()
   pd.col.c <- c()
@@ -378,6 +377,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     }
 
     usubjid <- unique(c(usubjid, pd$USUBJID))
+    # Issue is occuring here.
     dvids <- unique(c(dvids, pd$DVID))
 
     pd <- dplyr::mutate(pd, IMPDV = ifelse(!"IMPDV" %in% colnames(pd), 0, IMPDV))
@@ -687,7 +687,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                           ATLD = ifelse(is.na(ATFD), NTLD, ATLD),
                           ATFD = ifelse(is.na(ATFD), NTFD, ATFD))
     }
-
     if (impute==2) {
       df <- dplyr::arrange(df, USUBJID, NTFD, EVID)
       df <- dplyr::group_by(df, USUBJID, NDAY)
@@ -931,7 +930,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   t.cont.cov <- c() #vector to contain subject-level continuous covariates
   t.cat.cov.n <- c() #vector to contain subject-level numeric categorical covariates
   t.cont.cov.units <- c()
-
   if (is.data.frame(tv.cov)==TRUE) {
 
     for (i in 1:length(colnames(tv.cov))) {
@@ -1308,7 +1306,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       }
     }
   }
-
   ###RETURN FINAL DATASET###
   return(df)
 }

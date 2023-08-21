@@ -117,7 +117,7 @@ cov_find <- function(df, cov, type) {
 
   else if (cov=="units") {
     if (type=="numeric") {
-      stop("units must be numeric only")
+      stop("units' type must be character.")
     }
     else if (type=="character") {
       covs <- colnames(df2)[grepl("^B", colnames(df2)) | grepl("^T", colnames(df2))]

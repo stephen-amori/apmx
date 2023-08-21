@@ -72,7 +72,6 @@ pk_define <- function(file, project, variable.list, template=NULL,
   CMT <- DVID <- EVID <- Variable <- Description <- Units <- Numeric <- NULL
   Character <- Values <- Format <- Comment <- Categorization <- NULL
 
-
   data.dir <- this.path::dirname2(file) #directory of the dataset
 
   if (data.dir==".") {
@@ -113,7 +112,6 @@ pk_define <- function(file, project, variable.list, template=NULL,
   if(!is.numeric(na)) {
     stop("na must be numeric type.")
   }
-
   ###CREATE DEFINITION FILE###
   df <- utils::read.csv(file, na.strings=".")
   vl <- utils::read.csv(variable.list,
