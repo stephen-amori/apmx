@@ -1273,6 +1273,7 @@ test_that("Final Sorting Arrangement", {
     local_edition(3)
     pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
                     sl.cov = test_sl_cov_list, demo.map = T)
+    pkdf <- dplyr::select(pkdf, -VERSN, -BUILD)
     expect_snapshot(print(pkdf,n = Inf, width = Inf), variant = "final-sorting-arrangment")
 })
 
