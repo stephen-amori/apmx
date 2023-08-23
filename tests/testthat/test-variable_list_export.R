@@ -49,11 +49,6 @@ dm <- DM %>%
 # Adding units to DM.
 dm <- dm %>% mutate(AGEU = "Years")
 
-pkdf_cov_me <- pk_build(ex = ex, pc = pc,
-                BDV=T, DDV=T, PDV=T,
-                time.rnd=3, dv.rnd=3, cov.rnd=3)
-
-
 
 pkdf <- pk_build(ex = ex,
                  pc = pc,
@@ -61,3 +56,16 @@ pkdf <- pk_build(ex = ex,
                  cycle.length = 14,
                  time.rnd = 3)
 ################### END: DUMMY DATA ####################
+
+test_that("variable_list_export QC", {
+    # source("R/variable_list_export.R")
+    # Checking to see if 
+    expect_error(variable_list_export("not-valid-path"), "not-valid-path is not a valid filepath.")
+    current_path <- getwd()
+    expect_error(variable_list_export(current_path), "filepath must include document name and .csv suffix.")
+    current_path <- paste0(current_path, "/variable_list_export-supporting-files/export_test.csv")
+    print(current_path)
+    variable_list_export(current_path)
+    expect_true(file.exists(current_path))
+    unlink(current_path)
+})

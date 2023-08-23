@@ -16,6 +16,7 @@
 #'
 #' @export
 variable_list_export <- function(file) {
+  browser()
   dir <- this.path::dirname2(file) #directory of the dataset
 
   if (dir==".") {
