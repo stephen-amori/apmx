@@ -75,11 +75,22 @@ version_log <- function(file, orig = F, outdir = NULL,
                         comp_var, src_data = "",
                         font = "Times New Roman", size = 9,
                         orient = "landscape") {
+  browser()
   content_type <- is_header <- row_id <- cell_id <- text <- NULL
   DATASET <- COMMENTS <- ROW <- NULL
 
+  # QC: If file doesn't exist, inform user.
+  if (!file.exists(file)) {
+    stop(paste("Error,", file, "does not exist!"))
+  }
+
   data <- utils::read.csv(file, na.strings=".")
   name <- basename(file)
+
+  # QC: If file is not .csv, throw error.
+  if (!grepl("\\.csv$", name)) {
+    stop("There is no csv file. Need a csv file.")
+  }
   if(is.null(outdir)) {
     outpath <- paste0(dirname(file), "/")
   }
