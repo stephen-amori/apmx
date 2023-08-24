@@ -57,32 +57,60 @@ pkdf <- pk_build(ex = ex,
                  time.rnd = 3)
 ################### END: DUMMY DATA ####################
 
-#####################################################################################################
-# test_path <- "C:/Users/michael.dick/Documents/tests-apmx/apmx/tests/testthat/test-version_log.R"  #
-#####################################################################################################
-
-
 test_that("QC Checks", {
-    source("R/version_log.R")
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # source("R/version_log.R")
     dir <- getwd()
-    # Adding on test dir, don't need this for devtools::test()
-    dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf")
-    out <- paste0(getwd(), "/tests/testthat/version_log-data/")
-
-    # dir <- paste0(dir, "/test-pk-define-files/pkdf")
-    # out <- paste0(getwd(), "/version_log-data")
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf")
+    # out <- paste0(getwd(), "/tests/testthat/version_log-data/")
+    dir <- paste0(dir, "/test-pk-define-files/pkdf")
+    out <- paste0(getwd(), "/version_log-data")
 
     expect_error(version_log(file = dir, orig = T, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")))
+    
     # Correction:
     dir <- getwd()
-    # Adding on test dir, don't need this for devtools::test()
-    dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf.csv")
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf.csv") 
+    dir <- paste0(dir, "/test-pk-define-files/pkdf.csv")
+
     
     version_log(file = dir, orig = T, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
+
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # version_log_dir <- paste0(getwd(), "/tests/testthat/version_log-data/VersionLog.docx")
+    version_log_dir <- paste0(getwd(), "/version_log-data/VersionLog.docx")
+    # Appending the version log.
     dir <- getwd()
-    # Adding on test dir, don't need this for devtools::test()
-    pk_write(pkdf, file =  paste0(dir, "/tests/testthat/test-pk-define-files/pkdf2.csv"))
-    dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf2.csv")
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf2.csv")
+    dir <- paste0(dir, "/test-pk-define-files/pkdf2.csv")
+
     version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
+    dir <- getwd()
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf3.csv")
+    dir <- paste0(dir, "/test-pk-define-files/pkdf3.csv")
+    version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
+
+    dir <- getwd()
+    # ↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓
+    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf.csv")
+    dir <- paste0(dir, "/test-pk-define-files/pkdf.csv")
+
+    # Having original data to false, and version log is expecting data, but there is non.
+    expect_error(version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")),
+    "This file is not the most recent dataset version")
+
+    out <- paste0(getwd(), "/version_log-data")
+    files_to_append <- list.files(out, pattern = "^V.*", full.names = TRUE)
+    expect_length(files_to_append, 1)
+    browser()
+    # Clean up files.
+    unlink(version_log_dir)
+
+    expect_error(version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")), 
+    "There is no preexisting version log in the outpath provided")
 
 })

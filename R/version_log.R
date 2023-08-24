@@ -75,7 +75,6 @@ version_log <- function(file, orig = F, outdir = NULL,
                         comp_var, src_data = "",
                         font = "Times New Roman", size = 9,
                         orient = "landscape") {
-  browser()
   content_type <- is_header <- row_id <- cell_id <- text <- NULL
   DATASET <- COMMENTS <- ROW <- NULL
 
