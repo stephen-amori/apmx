@@ -54,6 +54,8 @@ test_that("Filter out (new addition!)", {
     # source("R/pk_summarize.R")
 
     pkdf <- pk_build(ex = EX, pc = PC)
+    dir <- getwd()
+    
     dir <- "C://Users//michael.dick//Documents//apmx//temp-csvs//test1.csv"
     pk_write(pkdf, dir)
     

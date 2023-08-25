@@ -59,42 +59,42 @@ pkdf <- pk_build(ex = ex,
 
 test_that("QC Checks", {
     # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # source("R/version_log.R")
+    source("R/version_log.R")
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
     dir <- getwd()
     # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf")
-    # out <- paste0(getwd(), "/tests/testthat/version_log-data/")
+    dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf")
+    out <- paste0(getwd(), "/tests/testthat/version_log-data/")
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
 
-    dir <- paste0(dir, "/test-pk-define-files/pkdf")
-    out <- paste0(getwd(), "/version_log-data")
+    # dir <- paste0(dir, "/test-pk-define-files/pkdf")
+    # out <- paste0(getwd(), "/version_log-data")
 
     expect_error(version_log(file = dir, orig = T, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")))
     
     # Correction:
     dir <- getwd()
     # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf.csv") 
-    dir <- paste0(dir, "/test-pk-define-files/pkdf.csv")
+    dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf.csv") 
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+    # dir <- paste0(dir, "/test-pk-define-files/pkdf.csv")
     
     version_log(file = dir, orig = T, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
 
     # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # version_log_dir <- paste0(getwd(), "/tests/testthat/version_log-data/VersionLog.docx")
+    version_log_dir <- paste0(getwd(), "/tests/testthat/version_log-data/VersionLog.docx")
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
-    version_log_dir <- paste0(getwd(), "/version_log-data/VersionLog.docx")
+    # version_log_dir <- paste0(getwd(), "/version_log-data/VersionLog.docx")
     # Appending the version log.
     dir <- getwd()
     # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf2.csv")
+    dir <- paste0(dir, "/tests/testthat/test-pk-define-files/pkdf2.csv")
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
     
-    dir <- paste0(dir, "/test-pk-define-files/pkdf2.csv")
+    # dir <- paste0(dir, "/test-pk-define-files/pkdf2.csv")
 
     version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
     dir <- getwd()
