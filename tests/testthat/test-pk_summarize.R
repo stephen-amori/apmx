@@ -54,7 +54,9 @@ test_that("Filter out (new addition!)", {
     # source("R/pk_summarize.R")
 
     pkdf <- pk_build(ex = EX, pc = PC)
-    dir <- "C://Users//michael.dick//Documents//apmx//temp-csvs//test1.csv"
+    dir <- paste0(getwd(), "/test-pk-summarize-files/test1.csv")
+    
+    # dir <- "C://Users//michael.dick//Documents//apmx//temp-csvs//test1.csv"
     pk_write(pkdf, dir)
     
     expect_error(pk_summarize(file = dir, ignore_request = c("USUBJID == D")), regexp = "D is not a record in the dataset.")
