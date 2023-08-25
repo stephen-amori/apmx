@@ -1,7 +1,7 @@
 Package: apmx
 Type: Package
 Title: Automated Approach to PK and PKPD Dataset Assembly
-Version: 0.3.3
+Version: 0.3.4
 Date: 2023-07-14
 Authors@R: c(
     person("Stephen", "Amori", email="stephen.amori@amadorbio.com", role = c("aut", "cre", "cph")),
@@ -34,5 +34,7 @@ Depends:
     R (>= 2.10)
 Suggests: 
     rmarkdown,
-    knitr
+    knitr,
+    testthat,
+    tibble
 VignetteBuilder: knitr

@@ -1,0 +1,988 @@
+---
+title:
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PKPD_analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo=TRUE,
+  error=TRUE,
+  warning=TRUE,
+  message=FALSE
+)
+```
+
+# PK(PD) dataset assembly with the apmx library
+
+## Prepare workspace and load data
+This package contains randomly-generated source data for instructional purposes.
+```{r setup}
+library(apmx)
+library(dplyr)
+library(tidyr)
+
+EX <- as.data.frame(EX)
+PC <- as.data.frame(PC)
+DM <- as.data.frame(DM)
+LB <- as.data.frame(LB)
+```
+
+## Background
+Clinical trial data is not collected in a way that automatically suits population pharmacometric work. Trial data is organized in a collection of datasets, one dataset per data type. These datasets are often called "domains".  
+
+The FDA and other regulatory agencies require domains be formatted per CDISC standards for submission. There are two main types of CDISC datasets:  
+
+* SDTM: study data tabulation model (a simple, organized, line-listing of each data point) https://www.cdisc.org/standards/foundational/sdtm  
+* ADaM: analysis data model (datasets with derived values for analysis purposes) https://www.cdisc.org/standards/foundational/adam  
+
+Here are some examples of common CDISC SDTM domains (as they relate to pharmacometrics):  
+
+* `ex`: exposure (data about administered and planned doses)
+* `pc`: pharmacokinetics (data about pharmacokinetic samples)
+* `dm`: demographics (general metadata about the subject)
+* `lb`: laboratory (chemistry, hematology, lipid, and other lab panel results)
+* `vs`: vital signs (height, weight, BMI, and other clinical tests)
+* `cm`: conconmitant medications (additional medications taken prior to, during, and/or after treatment)
+* `ae`: adverse events (any untoward medical event that occurs after signing informed consent while on trial)
+* `eg`: EKG (ECG) readings
+* `tr`: tumor response (RECIST 1.1 or other tumor measurements)
+* `rs`: response (other response measurements, such as OS, PFS, etc.)  
+
+There are many other types of SDTM domains. Technically, there are an infinite number of domains since you can create your own custom domains.  
+
+For every SDTM domain, there is usually an ADaM equivalent. All ADaM domains start with ad__, followed by the domain name:  
+
+* `adex`: ADaM version of ex  
+
+There are some ADaM domains that are specific to the ADaM:  
+
+* `adsl`: subject-level (a compilation of many important variables, one row per subject)  
+
+Even though this data is well organized, there is no CDISC format for use in NONMEM or other population pharmacometric softwares. That is why we have built an R package, apmx, to provide tools to help build population PK(PD) datasets.
+
+This training will walk you through the R package and help you learn about pharmacometric data. The data loaded above are randomly-generated SDTM-like datasets to support training. They are based on a simple study design:  
+
+* IP: ABC999, oral tablet formulation
+* Study drug administered twice, on D1 and D15
+* Serial PK samples collected following both doses
+* Additional domains DM and LB are also provided  
+
+Currently, the package is limited to PK and PKPD datasets for analysis in NONMEM only. Additional tools for PK(PD) datasets, plus tools for other analysis types (TTE, logistic regression, QTC analysis) are under development and not available at this time. Datasets for analysis with other softwares, such as Monolix, are also unavailable at this time.  
+
+
+## Dose event preparation
+PK dataset assembly starts with preparing dose events. Dose events require several columns for assembly. Below are the apmx standard names, along with the typical SDTM name equivalent when applicable. Other variables, like `DUR` (infusion duration), may be required based on the analysis.    
+
+* `USUBJID`: subject ID [character]
+* `DTIM` (EXSTDTC): date-time of dose administration [character]
+* `VISIT`: character visit label [character]
+* `NDAY` (EXSTDY): study day [numeric]
+* `TPTC` (EXTPT): dose timepoint label [character]
+* `TPT` (EXTPTNUM): dose timepoint [numeric]
+* `CMT`: assigned compartment for dose events [numeric]
+* `AMT` (EXDOSE): amount of drug administered [numeric]
+* `DVID` (EXTRT): dose event label [character]
+* `ROUTE` (EXROUTE): route of administration [character]
+* `FRQ` (EXDOSFRQ): dose frequency [character]
+* `DVIDU` (EXDOSU): dose units [character]  
+
+The analyst must confirm the ex domain contains all of this information for the package to work. This dataset contains all of the information we need except the compartment. `CMT` must always be programmed by the user based on the model design. In this case, `CMT = 1` for the dose depot. We will also select only the columns that we need for the analysis, dropping the others.  
+
+```{r}
+ex <- EX %>%
+  dplyr::mutate(CMT = 1) %>%
+  dplyr::select(USUBJID, STUDYID, EXSTDTC, VISIT, EXSTDY, EXTPTNUM, EXDOSE,
+                CMT, EXTRT, EXTPT, EXROUTE, EXDOSFRQ, EXDOSU)
+```
+
+That's all we have to do to prepare the dose events for assembly.  
+
+## PK observation event preparation
+Now, we are going to prepare the PK observations. Observation events require several columns for assembly:  
+
+* `USUBJID`: subject ID [character]
+* `DTIM` (PCDTC): date-time of observation [character]
+* `VISIT`: character visit label [character]
+* `NDAY`: study day [numeric]
+* `TPTC` (PCTPT): observation timepoint label [character]
+* `TPT`: observation timepoint [numeric]
+* `CMT`: assigned compartment for observation events [numeric]
+* `ODV` (PCSTRESN): observation value in original units [numeric]
+* `LLOQ` (PCLLOQ): observation lower limit of quantification [numeric]
+* `DVID` (PCTEST): observation label [character]
+* `DVIDU` (PCTESTU): observation units [character]  
+
+The PC domain may have multiple DVIDs and CMTs, perhaps for multiple analytes. Once again, we need to confirm our dataset has all of this information. Are any variables missing?  
+
+* `CMT = 2` for central compartment
+* There is no numeric timepoint (TPT)
+* We will have to calculate both ourselves  
+
+```{r}
+pc <- PC %>%
+  dplyr::filter(PCSTAT=="Y") %>%
+  dplyr::mutate(CMT = 2,
+                TPT = dplyr::case_when(PCTPT=="<1 hour Pre-dose" ~ 0,
+                                       PCTPT=="30 minutes post-dose" ~ 0.5/24,
+                                       PCTPT=="1 hour post-dose" ~ 1/24,
+                                       PCTPT=="2 hours post-dose" ~ 2/24,
+                                       PCTPT=="4 hours post-dose" ~ 4/24,
+                                       PCTPT=="6 hours post-dose" ~ 6/24,
+                                       PCTPT=="8 hours post-dose" ~ 8/24,
+                                       PCTPT=="12 hours post-dose" ~ 12/24,
+                                       PCTPT=="24 hours post-dose" ~ 24/24,
+                                       PCTPT=="48 hours post-dose" ~ 48/24)) %>%
+  dplyr::select(USUBJID, PCDTC, PCDY, VISIT, TPT, PCSTRESN,
+                PCLLOQ, CMT, PCTEST, PCTPT, PCSTRESU)
+```
+
+That's all we have to do to prepare the observation events for assembly.  
+
+## Simple dataset assembly
+We have all of the information we need to build a simple PK dataset. Building a dataset is easy to do with `apmx`. Just feed the ex and pc domains into  `apmx::pk_build()`!  
+
+```{r}
+df_simple <- apmx::pk_build(ex = ex, pc = pc)
+```
+
+This function does a lot! Let's break down the new variables:  
+
+* `C`: this flag comments out problematic records flagged by PDOSEF, TIMEF, AMTF, or DUPF
+* `NSTUDY`: numeric version of `STUDYID`
+* `SUBJID`: numeric version of `USUBJID`
+* `ID`: numeric version of `USUBJID` (counting from 1)
+* `ATFD`: actual time since first dose
+* `ATLD`: actual time since last dose
+* `NTFD`: nominal time since first dose
+* `NTLC`: nominal time since last cycle
+* `NTLD`: nominal time since last dose
+* `EVID`: event ID (NONMEM-required)
+* `MDV`: missing dependent variable (NONMEM-required)
+* `DVID`: numeric version of `DVID`
+* `LDV`: log-transformed `ODV`
+* `BLQ`: below-limit of quantification flag
+* `DOSENUM`: dose number (counting from 1)
+* `DOSEA`: most recent administered dose amount
+* `NROUTE`: numeric version of `ROUTE`
+* `NFRQ`: numeric version of `FR`Q
+* `PDOSEF`: flag for records that occur prior to the first dose
+* `TIMEF`: flag for records where `ATFD = NA`
+* `AMTF`: flag for dose events where `AMT = NA`
+* `DUPF`: flag for duplicated records (same `USUBJID`, `ATFD`, `EVID`, and `CMT`)
+* `NOEXF`: flag for subjects with no dose events
+* `NODV1F`: flag for subjects with no observations where `DVID = 1`
+* `SDF`: flag for single-dose subjects
+* `PLBOF`: flag for placebo records
+* `SPARSEF`: flag for records associating with sparse sampling
+* `TREXF`: flag for dose records occurring after the last observation
+* `IMPEX`: flag for records impacted by a dose event with imputed time
+* `IMPDV`: flag for an observation record with an imputed time
+* `LINE`: dataset row number
+* `NSTUDYC`: character version of `STUDYID`
+* `DOMAIN`: original domain of event
+* `DVIDC`: character version of `DVID`
+* `TIMEU`: time units of time variables
+* `NROUTEC`: character version of `ROUTE`
+* `NFRQC`: character version of `FRQ`
+* `FDOSE`: date-time of first dose
+* `VERSN`: `apmx` package version
+* `BUILD`: date of dataset creation  
+
+`pk_build()` has optional parameters that can customize the output dataset. Here are all of the options that will affect a simple dataset. Here they are presented in their default state:  
+
+```{r}
+df_simple <- apmx::pk_build(ex = ex, #dataframe of prepared dose events
+                            pc = pc, #dataframe of prepared pc observation events
+                            time.units = "days", #can be set to days or hours.
+                            #NOTE: units of TPT in ex and pc should match this unit
+                            cycle.length = NA, #must be in units of days, will reset NTLC to 0
+                            na = -999, #replaces missing nominal times and covariates with a numeric value
+                            time.rnd = NULL, #rounds all time values to x decimal places
+                            amt.rnd = NULL, #rounds calculated dose values to x decimal places
+                            dv.rnd = NULL, #rounds observation columns to x decimal places
+                            impute = NA, #imputation method for missing times
+                            sparse = 3) #threshold for calculating sparse/serial distinctions
+
+```
+
+I recommend setting `time.rnd = 3` to make the dataset easier to read.  
+
+```{r}
+df_simple <- apmx::pk_build(ex, pc, time.rnd = 3)
+```
+
+Sometimes, you will want a more complicated dataset. Let's explore additional functionalities of `pk_build()`.  
+
+## Covariate preparation
+For the most part, all covariates can be divided into four categories:  
+
+* Subject-level, categorical covariates
+* Subject-level, continuous covariates
+* Time-varying, categorical covariates
+* Time-varying, continuous covariates  
+
+`apmx` has a few requirements to help keep track of different kinds of covariates. When you program covariates, you have to follow these rules:    
+
+* Categorical covariates must be programmed as character-type.
+* Continuous covariates must be programmed as numeric-type.
+* Continuous covariates also require a unit variable (character-type).  
+
+Let's start by preparing some subject-level covariates from `dm` and `lb.` All subject-level covariate data frames require a USUBJID column. There must only be one row per subject. Covariate names should be clear and easy to interpret.  
+```{r}
+dm <- DM %>%
+  dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC) %>%
+  dplyr::mutate(AGEU = "years") #AGE is continuous and requires a unit
+```
+
+```{r}
+lb <- LB %>% #select the desired labs
+  dplyr::filter(LBCOMPFL=="Y") %>%
+  dplyr::filter(LBVST %in% c("Baseline (D1)", "Screening")) %>%
+  dplyr::filter(LBPARAMCD %in% c("ALB", "AST", "ALT", "BILI", "CREAT")) %>%
+  dplyr::mutate(LBORRES = as.numeric(LBORRES))
+
+lb <- lb %>% #select the lab collected immediately prior to first dose
+  dplyr::arrange(USUBJID, LBPARAMCD, LBDT) %>%
+  dplyr::group_by(USUBJID, LBPARAMCD) %>%
+  dplyr::filter(row_number()==max(row_number())) %>%
+  dplyr::ungroup()
+
+lb <- lb %>% #finish formatting and add units since all labs are continuous
+  dplyr::select(USUBJID, LBPARAMCD, LBORRES) %>%
+  tidyr::pivot_wider(names_from = "LBPARAMCD", values_from = "LBORRES") %>%
+  dplyr::mutate(ALBU = "g/dL",
+                ASTU = "IU/L",
+                ALTU = "IU/L",
+                BILIU = "mg/dL",
+                CREATU = "mg/dL")
+```
+
+Next, let's prepare some time-varying covariates from `lb`. All time-varying covariate data frames require a `USUBJID` and `DTIM` column.  
+
+```{r}
+tast <- LB %>%
+  dplyr::filter(LBCOMPFL=="Y") %>%
+  dplyr::filter(LBPARAMCD=="AST") %>%
+  dplyr::mutate(LBORRES = as.numeric(LBORRES)) %>%
+  dplyr::select(USUBJID, DTIM = LBDT, AST = LBORRES) %>%
+  dplyr::mutate(ASTU = "IU/L")
+```
+
+```{r}
+talt <- LB %>%
+  dplyr::filter(LBCOMPFL=="Y") %>%
+  dplyr::filter(LBPARAMCD=="ALT") %>%
+  dplyr::mutate(LBORRES = as.numeric(LBORRES)) %>%
+  dplyr::select(USUBJID, DTIM = LBDT, ALT = LBORRES) %>%
+  dplyr::mutate(ALTU = "IU/L")
+```
+
+## PD observation preparation
+You may want to add PD observations to your dataset. PD observations have the same requirements as pc observations. Unfortunately, `apmx` does not recognize SDTM/ADaM language for PD observations. That is because there are many types of pd events, with many types of possible formats. You must convert all column names to `apmx` column names.  
+
+For this analysis, we will pretend glucose observations from `lb` are a meaningful biomarker. Let's set `CMT = 3` for the PD compartment.  
+
+```{r}
+pd <- LB %>%
+  dplyr::filter(LBCOMPFL=="Y") %>%
+  dplyr::filter(LBPARAM=="glucose") %>%
+  dplyr::mutate(DTIM = paste(LBDT, "00:00"),
+                VISIT = LBVST,
+                NDAY = case_when(VISIT=="Screening" ~ -15,
+                                 VISIT=="Baseline (D1)" ~ 1,
+                                 VISIT=="Visit 2 (D8)" ~ 8,
+                                 VISIT=="Visit 3 (D15)" ~ 15,
+                                 VISIT=="Visit 4 (D29)" ~ 29,
+                                 VISIT=="End of Treatment" ~ 45),
+                TPT = 0,
+                TPTC = LBTPT,
+                ODV = as.numeric(LBORRES),
+                DVIDU = LBORRESU,
+                LLOQ = NA,
+                CMT = 3,
+                DVID = LBPARAM) %>%
+  dplyr::select(USUBJID, DTIM, NDAY, VISIT, TPT,
+                ODV, LLOQ, CMT, DVID, TPTC, DVIDU)
+```
+
+## Full dataset assembly
+Let's add all of the new events and covariates to the dataset.  
+
+```{r}
+df_full <- apmx::pk_build(ex = ex, pc = pc, pd = pd,
+                          sl.cov = list(dm, lb),
+                          tv.cov = list(tast, talt),
+                          time.rnd = 3)
+```
+
+First, you'll notice a warning was issued in the console. We will re-visit the warnings later in this document. Instead, let's focus on the dataset itself.  
+
+There is a new type of row where `EVID = 2`.  
+
+``` {r}
+unique(df_simple$EVID)
+unique(df_full$EVID)
+```
+
+These rows capture the date-time and values of time-varying covariates. Sometimes, we want to retain the exact date-time of each time-varying covariate.  
+
+The `DVID` column changed since the last visit.  
+
+```{r}
+unique(df_simple$DVID)
+unique(df_full$DVID)
+
+unique(df_simple$DVIDC)
+unique(df_full$DVIDC)
+```
+
+There are now two observation events, ABC999 and glucose. The `NA` rows are for dose and other events.  
+
+You'll notice that all of the covariate names changed a bit. They all received a prefix, and some received a suffix. Why do we do this? Prefixes and suffixes can identify the type of covariate:  
+
+* Prefix N: categorical, subject-level
+* Prefix B: continuous, subject-level (baseline)
+* Prefix T: categorical or continuous, time-varying
+* Suffix C: character-type for categorical variables
+* Suffix U: units for continuous variables
+
+If you can't remember the prefixes and suffixes, that's OK! We have an additional function to help with that. `apmx::cov_find()` will return all covariates of particular types in a PK dataset.  
+
+```{r}
+apmx::cov_find(df_full, cov = "categorical", type = "numeric")
+apmx::cov_find(df_full, cov = "categorical", type = "character")
+apmx::cov_find(df_full, cov = "continuous", type = "numeric")
+apmx::cov_find(df_full, cov = "units", type = "character")
+```
+
+Let's explore the rest of the optional parameters in `pk_build()`.  
+
+``` {r}
+df_full <- apmx::pk_build(ex = ex, pc = pc, pd = pd,
+                          sl.cov = list(dm, lb),
+                          tv.cov = list(tast, talt),
+                          time.rnd = 3,
+                          cov.rnd = NULL, #rounds observation columns to x decimal places
+                          BDV = F, #calculates baseline dependent variable for PD events
+                          DDV = F, #calculates change (delta) from baseline for PD events
+                          PDV = F, #calculates percent change from baseline for PD events
+                          demo.map = T, #adds specific numeric mapping for SEX, RACE, and ETHNIC variables
+                          tv.cov.fill = "downup", #fill pattern for time-varying covariates
+                          keep.other = T) #keep or drop all EVID = 2 rows
+```
+
+The dataset is a bit easier to read if we drop the other events. We will do that moving forward for the rest of the tutorial.  
+
+```{r}
+df_full <- apmx::pk_build(ex = ex, pc = pc, pd = pd,
+                          sl.cov = list(dm, lb),
+                          tv.cov = list(tast, talt),
+                          time.rnd = 3, dv.rnd = 3,
+                          BDV = T, DDV = T, PDV = T,
+                          keep.other = F)
+```
+
+## Other covariate methods
+Time-varying covariates can be challenging to work with. The `pk_build()` function can only fill them by date-time. What if date-time is not available in the source data?  
+
+The `apmx::cov_apply()` function will add covariates to a dataset built by `pk_build()`. It will add time-varying covariates by any time variable, including:  
+
+* `DTIM`
+* `ATFD`
+* `ATLD`
+* `NTFD`
+* `NTLC`
+* `NTLD`
+* `NDAY`  
+
+Let's add TAST (time-varying AST) by nominal time instead of actual time.  
+
+``` {r}
+tast <- LB %>%
+  dplyr::filter(LBCOMPFL=="Y") %>%
+  dplyr::filter(LBPARAMCD=="AST") %>%
+  dplyr::mutate(NTFD = case_when(LBVST=="Screening" ~ -15, #calculate NTFD from visit code
+                                 LBVST=="Baseline (D1)" ~ 1,
+                                 LBVST=="Visit 2 (D8)" ~ 8,
+                                 LBVST=="Visit 3 (D15)" ~ 15,
+                                 LBVST=="Visit 4 (D29)" ~ 29,
+                                 LBVST=="End of Treatment" ~ 45)) %>%
+  dplyr::mutate(AST = as.numeric(LBORRES)) %>%
+  dplyr::select(USUBJID, NTFD, AST, ASTU = LBORRESU)
+
+df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
+                               sl.cov = list(dm, lb),
+                               time.rnd = 3, dv.rnd = 3,
+                               BDV = T, DDV = T, PDV = T,
+                               keep.other = F) %>%
+  apmx::cov_apply(tast, time.by = "NTFD")
+```
+
+`cov_apply()` can also add subject-level covariates by any subject identifier.
+
+```{r}
+df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
+                               time.rnd = 3, dv.rnd = 3,
+                               BDV = T, DDV = T, PDV = T,
+                               keep.other = F) %>%
+  apmx::cov_apply(dm) %>%
+  apmx::cov_apply(lb) %>%
+  apmx::cov_apply(talt, time.by = "DTIM") %>%
+  apmx::cov_apply(tast, time.by = "NTFD")
+```
+
+`cov_apply()` can also add empirical bayes estimates or exposure metrics. Notice these also get their own prefixes.  
+
+* Prefix C: exposure metric
+* Prefix I: empirical bayes estimate  
+
+`cov_apply()` cannot handle units for these parameters at this time.  
+
+Let's try adding exposure metrics and parameter estimates to the dataset. First, we will generate dummy exposures and parameter estimates.
+
+```{r}
+exposure <- data.frame(ID = 1:22, #exposure metrics
+                       MAX = 1001:1022,
+                       MIN = 101:122,
+                       AVG = 501:522)
+
+parameters <- data.frame(ID = 1:22, #individual clearance and central volume estimates
+                         CL = seq(0.1, 2.2, 0.1),
+                         VC = seq(1, 11.5, 0.5))
+```
+
+``` {r}
+df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
+                               time.rnd = 3, dv.rnd = 3,
+                               BDV = T, DDV = T, PDV = T,
+                               keep.other = F) %>%
+  apmx::cov_apply(dm) %>%
+  apmx::cov_apply(lb) %>%
+  apmx::cov_apply(talt, time.by = "DTIM", keep.other = F) %>%
+  apmx::cov_apply(tast, time.by = "NTFD", keep.other = F) %>%
+  apmx::cov_apply(exposure, id.by = "ID", exp = T) %>%
+  apmx::cov_apply(parameters, id.by = "ID", ebe = T)
+```
+
+It is recommended you always use `pk_build()` or `cov_apply()` to add covariates instead of adding them in yourself. That ensures `cov_find()` always finds the covariates correctly.
+
+``` {r}
+apmx::cov_find(df_cov_apply, cov = "categorical", type = "numeric")
+apmx::cov_find(df_cov_apply, cov = "categorical", type = "character")
+apmx::cov_find(df_cov_apply, cov = "continuous", type = "numeric")
+apmx::cov_find(df_cov_apply, cov = "units", type = "character")
+apmx::cov_find(df_cov_apply, cov = "exposure", type = "numeric")
+apmx::cov_find(df_cov_apply, cov = "empirical bayes estimate", type = "numeric")
+```
+
+## Errors and warnings
+`pk_build()` and other apmx functions issue errors/warnings for problematic data. What is the warning we have been receiving this whole time? First, let's filter our dataset to the one subject triggering the warning:  
+
+``` {r}
+warning <- df_full %>%
+  dplyr::filter(USUBJID=="ABC102-01-005")
+
+nrow(warning)
+warning$DVIDC
+```
+
+This subject has 1 PD observation, no dose or PK observations. Because there is no dose, you cannot calculate `ATFD` (actual time since first dose). The warning informs you which subjects have this particular problem. This helps you diagnose potential problems with your data. Notice in this instance, the record is flagged by `C` and `TIMEF`.  
+
+``` {r}
+warning$C
+warning$TIMEF
+```
+
+There are other errors and warnings to help you diagnose your data as well. There is a key difference between the two:  
+
+* Errors inform you the input data cannot be used to build a dataset. This will require you to review the data and re-format it.  
+* Warnings inform you the data can be used to build a dataset, but there may be problems with it. You should review the data to determine why the warnings are occurring. You don't need to make them all disappear for the dataset to work in NONMEM successfully.  
+
+#### Errors
+What if you are missing a required column in your input domain?  
+
+```{r}
+ex_error <- ex[, -5]
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if the variable types are incorrect?  
+
+```{r}
+ex_error <- ex
+ex_error$USUBJID <- 1:42
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if a required value is missing?  
+
+``` {r}
+ex_error <- ex
+ex_error$USUBJID[5] <- NA
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if we program `ADDL` but not `II` for dose events?  
+
+``` {r}
+ex_error <- ex
+ex_error$ADDL <- 1
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if date-time is not formatted correctly?  
+
+```{r}
+ex_error <- ex
+ex_error$EXSTDTC <- substr(ex_error$EXSTDTC, 1, 10)
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if the baseline nominal day `NDAY == 0` instead of 1?  
+
+``` {r}
+ex_error <- ex
+ex_error$EXSTDY <- 0
+
+apmx::pk_build(ex_error, pc)
+```
+
+Nominal days can be tricky. The day a patient takes their first dose is day 1. The day before their first dose is day -1. Therefore, there is no study day 0.  
+
+What if `ADDL` and `II` are both present, but one of them is `NA`?  
+
+``` {r}
+ex_error <- ex
+ex_error$ADDL <- 1
+ex_error$II <- c(rep(1, 41), NA)
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if you only enter a dose domain?  
+
+```{r}
+apmx::pk_build(ex)
+```
+
+What if a pc observation is 0 or negative?  
+
+``` {r}
+pc_error <- pc
+pc_error$PCSTRESN[10] <- 0
+
+apmx::pk_build(ex, pc_error)
+```
+
+What if the study code is not included in `ex` or `sl.cov`? Note that you can pass the study code variable through `sl.cov` or `ex`.  
+
+```{r}
+ex_error <- ex %>%
+  select(-STUDYID)
+
+apmx::pk_build(ex_error, pc)
+```
+
+What if you have multiple values for a subject-level covariate within one subject?  
+
+```{r}
+dm_error <- dm
+dm_error$USUBJID[2] <- "ABC102-01-001"
+
+apmx::pk_build(ex, pc, sl.cov=dm_error)
+```
+
+What if you select a time unit not supported by `pk_build`?  
+
+``` {r}
+apmx::pk_build(ex, pc, time.units="minutes")
+```
+
+What if you program `DDV` and/or `PDV` without calculating `BDV`?  
+
+```{r}
+apmx::pk_build(ex, pc, pd, DDV=T, PDV==T)
+```
+
+What if you pass the same covariate through multiple dataframes?  
+
+```{r}
+ex_error <- ex
+ex_error$NSEX <- 0
+
+apmx::pk_build(ex_error, pc, sl.cov = dm)
+```
+
+Note you are allowed to pass other columns through the ex, pc, and pd domains. For example, try adding the column `SEX` instead of `NSEX`. If you pass an extra column through ex, pc, or pd, it will not be impacted by the function.
+
+What if you provide a continuous covariate but forget to provide units?
+```{r}
+dm_error <- dm %>%
+  select(-AGEU)
+
+apmx::pk_build(ex, pc, sl.cov = dm_error)
+```
+
+#### Warnings
+These datasets will build, but `pk_build()` will inform you of potential problems. What if a subject has no covariates, but others do?
+
+```{r}
+dm_warning <- dm
+dm_warning <- dm_warning[1:4,]
+
+df_warning <- apmx::pk_build(ex, pc, sl.cov=dm_warning)
+```
+
+```{r}
+df_warning <- apmx::pk_build(ex, pc, sl.cov = list(dm_warning, lb))
+```
+
+Notice the warning is only triggered if a subject has NO covariates. In the second case, all subjects are included in lb, while only some are in `dm`. The warning does not issue if the subject has at least 1 covariate. All missing covariate are filled with the missing parameter, default `-999`.  
+
+What if a subject does not have any baseline PD events and `BDV|DDV|PDV == TRUE`? Notice the warning is only issued if `BDV`, `DDV`, or `PDV` are calculated.  
+
+``` {r}
+pd_warning <- pd
+pd_warning <- pd[3:nrow(pd_warning), ]
+
+df_warning <- apmx::pk_build(ex, pc, pd_warning, BDV=T)
+```
+
+```{r}
+df_warning <- apmx::pk_build(ex, pc, pd_warning)
+```
+
+What if the source data events occurred out of order? You'll notice the `NTFD` of the first observation falls after the next event.  
+
+``` {r}
+pc_warning <- pc
+pc_warning$TPT[1] <- 0.07
+
+df_warning <- apmx::pk_build(ex, pc_warning,
+                             time.rnd = 3)
+```
+
+What if a dose event is missing `AMT`? The record is automatically C-flagged and a warning is issued. Note that the PK records for this subject are not C-flagged.  
+``` {r}
+ex_warning <- ex
+ex_warning$EXDOSE[1] <- NA
+
+df_warning <- apmx::pk_build(ex_warning, pc,
+                             time.rnd = 3)
+```
+
+What if there are two events that occur at the same time? Notice how the duplicated events are C-flagged and a warning is issued.  
+
+``` {r}
+pc_warning <- pc
+pc_warning[2, ] <- pc_warning[1, ]
+pc_warning$PCSTRESN[2] <- 1400
+
+df_warning <- apmx::pk_build(ex, pc_warning,
+                             time.rnd = 3)
+```
+
+What if you have a long column names? This warning informs you some column names are longer than 8 characters. This will prevent you from converting the dataset to a .xpt file if desired.  
+
+```{r}
+dm_warning <- dm %>%
+  rename(ETHNICITY = ETHNIC)
+
+df_warning <- apmx::pk_build(ex, pc, sl.cov = dm_warning)
+```
+
+What if your baseline covariates and time-varying covariates are not equivalent at baseline? In theory, all baseline covariates and time-varying covarites should agree at `NTFD == 0`.  
+
+```{r}
+lb_warning <- lb
+lb_warning$ALT[1] <- 31
+
+df_warning <- apmx::pk_build(ex, pc, sl.cov = lb_warning, tv.cov = talt)
+```
+
+## Time imputations
+Some of our errors and warnings discuss problems with date/time elements of `ex` and `pc`. What do you do when you have an event, but the date/time information is missing? `pk_build` provides two methods for imputing missing times:  
+
+* Method 1: imputes the nominal time as the actual time. This method is good for simple imputations or for pre-clinical records when date-time was never collected.  
+* Method 2: imputes an estimate of `ATFD` relative to other events occurring at the same visit. This method is good for phase I/II/III trials  
+
+Let's experiment with these two methods. First, we will drop some date-times from `pc` and replace them with `NA`.  
+
+```{r}
+pc_impute <- pc
+pc_impute$PCDTC[c(4, 39, 73, 128)] <- NA
+
+df_impute <- apmx::pk_build(ex, pc_impute,
+                            time.rnd = 3)
+```
+
+This triggers the warning for missing `ATFD` as expected. Now, let's try impute method 1.
+
+```{r}
+df_impute_1 <- apmx::pk_build(ex, pc_impute,
+                              time.rnd = 3, impute = 1)
+```
+
+First, notice we have a new warning. We'll come back to that later. You should also notice that all events have times and the time warning disappeared. The imputation is notated with the `IMPEX` and `IMPDV` columns.
+
+```{r}
+nrow(df_impute_1[is.na(df_impute_1$ATFD),]) #number of rows with missing ATFD
+
+imputed_events_1 <- df_impute_1 %>%
+  dplyr::filter(IMPDV==1 | IMPEX==1)
+```
+`IMPDV` will flag observation records with an imputed time. `IMPEX` will flag all records impacted by an imputed dose. You'll notice we still have a warning for one subject. Let's find out why.  
+
+```{r}
+times_check_1 <- df_impute_1 %>%
+  dplyr::filter(USUBJID=="ABC102-01-004")
+```
+
+Notice row 12 has an imputed time `ATFD = 14.042`. That is because `NTFD = 14.042` for that record. However, the dose for this visit was administered a few days late, at time `ATFD = 16.053`. This imputation puts the post-dose sample two days ahead of the dose. Impute method 1 a poor assumption for this missing date.  
+
+Let's try method 2 to see if that assumption is better. Method 2 takes the late dose into account by estimating the time of the sample relative to the other events that day.
+
+```{r}
+df_impute_2 <- apmx::pk_build(ex, pc_impute,
+                              time.rnd = 3, impute = 2)
+
+imputed_events_2 <- df_impute_2 %>%
+  dplyr::filter(IMPDV==1 | IMPEX==1)
+```
+
+You'll notice the warning disappears. Let's check that subject again.  
+
+```{r}
+times_check_2 <- df_impute_2 %>%
+  dplyr::filter(USUBJID=="ABC102-01-004")
+```
+
+You'll notice that under this method, when `NTFD = 14.042`, `ATFD = 16.094`. Why?  
+
+* Method 2 will compare the NTFD of the record with missing time to the NTFD of the most recent dose or post-dose observation with a known date/time.
+* ATFD for the missing event is estimated as the ATFD of the most recent dose + the difference between their NTFD.
+* For example, the most recent dose occurs at `NTFD = 14`, `ATFD = 16.053`
+* For the imputation at `NTFD = 14.042`, `ATFD = 16.053 + (14.042 - 14) = 16.094` (the number may round a thousandth of a day off)
+* This is why method 2 is the better method for large studies, phase II/III  
+
+What if we are missing a date/time for a dose event? Let's repeat the experiment.  
+
+```{r}
+ex_impute <- ex
+ex_impute$EXSTDTC[2] <- NA
+
+df_impute <- apmx::pk_build(ex_impute, pc, #no imputation method
+                            time.rnd = 3)
+```
+
+```{r}
+df_impute_1 <- apmx::pk_build(ex_impute, pc, #imputation method 1
+                              time.rnd = 3, impute = 1)
+
+imputed_events_1 <- df_impute_1 %>% #imputed records
+  dplyr::filter(IMPDV==1 | IMPEX==1)
+```
+
+Now, a lot of records for subject 1 have `IMPEX == 1`. This is because all of these observations are associated with a dose with an imputed time. Is method 1 a good assumption?  
+
+* Imputation method 1 assigns the dose time as `ATFD = NTFD = 14`.
+* However, the PK observation times start around `ATFD = 12.9`.
+* Because the dose event is out of order, the `ATLD` is calculated incorrectly.
+* This assumption places the dose too late and is a poor assumption.
+
+Let's try method 2 to see the difference. You'll notice the events are in the correct order and times are imputed successfully.  
+
+```{r}
+df_impute_2 <- apmx::pk_build(ex_impute, pc,
+                              time.rnd = 3, impute = 2)
+
+imputed_events_2 <- df_impute_2 %>%
+  dplyr::filter(IMPDV==1 | IMPEX==1)
+```
+
+What if the first dose is missing instead of the second dose? Let's repeat the experiment, this time with method 2 only since we can assume method 1 won't work well in this scenario.  
+
+```{r}
+ex_impute <- ex
+ex_impute$EXSTDTC[1] <- NA
+
+df_impute <- apmx::pk_build(ex_impute, pc, # No imputation method, expect a warning
+                            time.rnd = 3)
+```
+
+```{r}
+df_impute_2 <- apmx::pk_build(ex_impute, pc, #imputation method 2
+                              time.rnd = 3, impute = 2)
+
+imputed_events_2 <- df_impute_2 %>% #imputed events
+  dplyr::filter(IMPDV==1 | IMPEX==1 | IMPFEX==1)
+```
+
+Notice an extra column was created, `IMPFEX.`  
+
+* `IMPFEX`: imputed time of first dose.
+* It is only activated when a first dose has an imputed time.
+* It is applied to all records within a subject.
+* `IMPEX` will only apply to all records until the next dose with a known date-time.  
+
+One final experiment - what if we are missing date-times from `ex` and `pc`? Note all times are imputed successfully and all warnings disappear.  
+
+```{r}
+ex_impute <- ex
+ex_impute$EXSTDTC[1:2] <- NA
+
+df_impute <- apmx::pk_build(ex = ex_impute, pc = pc_impute, #no impuation method
+                            time.rnd = 3)
+```
+
+```{r}
+df_impute_2 <- apmx::pk_build(ex = ex_impute, pc = pc_impute, #imputation method 2
+                              time.rnd = 3, impute = 2)
+```
+
+
+## Dataset combination
+What if we have multiple studies we want to analyze at once? We could create one large `ex`, `pc`, etc. input with each study, or we could use `apmx::pk_combine()` to combine two datasets built by `pk_build()`.  
+
+Let's create a copy of `df_full` and change it slightly. We'll pretend it's built from a second study, ABC103.  
+
+```{r}
+df_full2 <- df_full %>%
+  dplyr::filter(DOMAIN!="PD") %>% #remove glucose observations
+  dplyr::filter(ID<19) %>% #remove subject 19
+  dplyr::group_by(ID) %>%
+  dplyr::mutate(NSTUDYC = "ABC103", #update study ID
+                USUBJID = gsub("ABC102", "ABC103", USUBJID),
+                BAGE = round(rnorm(1, 45, 10)), #re-create all continuous covariates
+                BALB = round(rnorm(1, 4, 0.5), 1),
+                BALT = round(rnorm(1, 30, 5)),
+                BAST = round(rnorm(1, 33, 5)),
+                BBILI = round(rnorm(1, 0.7, 0.2), 3),
+                BCREAT = round(rnorm(1, 0.85, 0.2), 3),
+                TAST = ifelse(NTFD==0, BAST, round(rnorm(1, 33, 5))),
+                TALT = ifelse(NTFD==0, BALT, round(rnorm(1, 30, 5)))) %>%
+  dplyr::ungroup()
+```
+
+Now, we can combine these two studies together.  
+
+```{r}
+df_combine <- apmx::pk_combine(df_full, df_full2)
+```
+
+You'll notice we have a few more warnings issued with this function. That is because our `DVID` assignments are different.  
+
+```{r}
+unique(df_full$DVID)
+unique(df_full2$DVID)
+```
+
+If you forgot to add pd events for study 2, this warning will remind you. For thits tutorial, we will continue to exclude them.  
+
+Once we are done creating our dataset, we can read it out with the function `apmx::pk_write()`. This ensures the dataset is read out in a NONMEM-usable format.  
+
+```{r}
+out.dir <- paste0(getwd(), "/PK_ABC101_V01.csv")
+apmx::pk_write(df_combine, out.dir)
+```
+
+## Dataset documentation
+
+Documenting a dataset is important when working with a team and when sharing work with outside organizations or regulatory agencies. For example, the FDA requires all population pharmacometric analysis datasets be accompanied with a definition file. `apmx` provides tools to help you document your dataset.  
+
+We will start by exploring the definition file feature. The definition file sources variable names from a local list stored on your computer. You can download a simple version with `apmx::variable_list_export()`. Let's start by downloading the list.
+
+```{r}
+vl.dir <- paste0(getwd(), "/vl.csv")
+apmx::variable_list_export(vl.dir)
+```
+
+Open up the variable list and take a look at the information inside. You can customize the descriptions of these variables if you like. You should add definitions for the custom covariates in this project. When you add covariates, do not add the prefix and suffix, just add the root term. For example, you do not need to define `NSEX` and `NSEXC`, just `SEX`.  
+
+Save and close the variable list before continuing.  
+
+An optional component of the definition file is the template (.docx file). It provides a customized look to the definition file.  
+
+Now, let's create the definition file.  
+
+```{r}
+apmx::pk_define(file = out.dir,
+                project = "ABC999 tutorial",
+                variable.list = vl.dir)
+```
+
+The file automatically reads out to the same directory as the dataset. Take a look at the definition file and familiarize yourself with the layout. Notice if you forgot to add your custom covariates to the variable list, the covariate is retained in the file but the definition is NA. This document makes it easy to communicate to others what variables are in your dataset.  
+
+Next, let's create a version log. Version logs are important when we have multiple datasets over a project duration. Datasets can be updated for all sorts of reasons:  
+
+* Additional covariates added or removed
+* Additional studies, subjects or events added
+* Errors are corrected  
+
+Similar to the definition function, we can provide a template for formatting. You can also provide a comment to describe the source data. You also have to specify how to group the dataset to compare against the reference dataset. For PK(PD) datasets, you should group by `USUBJID`, `ATFD`, `EVID`, and `DVID`.  
+
+```{r}
+apmx::version_log(file = out.dir,
+                  orig = T,
+                  comp_var = c("USUBJID", "ATFD", "EVID", "DVID"),
+                  src_data = "test data")
+```
+
+Open the version log document and take a look around. Notice that there is a column called "Comments". You can add a comment there in the word document, and the function will not overwrite it.  
+
+What if we update the dataset and create a new version? Let's add an additional covariate and change another one.  
+
+``` {r}
+df_combine2 <- df_combine %>%
+  dplyr::group_by(ID) %>%
+  dplyr::mutate(BCREAT = round(rnorm(1, 0.85, 0.2), 3), #change BCREAT
+                BTUM = rnorm(1, 100, 30)) %>% #add BTUM (baseline tumor size)
+  dplyr::ungroup()
+
+out.dir <- paste0(getwd(), "/PK_ABC101_V02.csv")
+apmx::pk_write(df_combine2, out.dir)
+
+apmx::version_log(file = out.dir,
+                  comp_var = c("USUBJID", "ATFD", "EVID", "DVID"),
+                  src_data = "new test data")
+```
+
+Now we can communicate to others what is contained in each dataset and why they are changing over the course of the project.  
+
+Lastly, `apmx` can help you produce summary tables of your datasets. `apmx::pk_summarize()` produces three types of summary tables:  
+
+* BLQ summary
+* categorical covariate summary
+* continuous covariate summary  
+
+Tables can be stratified by any other categorical covariate in the dataset.  
+
+```{r}
+apmx::pk_summarize(out.dir)
+```
+
+The summary function has other parameters to help you document the dataset:  
+
+* `strat.by` will stratify the dataset by any variable.
+* `ignore.C` will remove all C-flagged records from the analysi.
+* This parameter is on by default.
+* `docx` will produce word document versions of the summary tables
+* `pptx` will produce powerpoint slides of the summary tables. NOTE: pptx feature is still under development  
+
+```{r}
+apmx::pk_summarize(file = out.dir,
+                   strat.by = c("NSTUDYC", "NSEXC"),
+                   docx = T,
+                   ignore.request = "NRACE == 2")
+```

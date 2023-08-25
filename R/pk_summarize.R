@@ -4,20 +4,21 @@
 #' Outputs are default .csv files, but can also be .docx and/or .pptx
 #' Tables are default stratified by study, but can be stratified by any variable requested by the user.
 #'
-#' @param file filepath PK(PD) dataset produced by pk_build()
-#' @param strat.by vector of variables names to stratify the summary tables
-#' @param ignore.c ignores records flagged in the C column when TRUE
-#' @param na numeric value interpreted by -999
-#' @param docx creates summary tables as a Word document when TRUE
-#' @param pptx creates summary tables as a PowerPoint document when TRUE
-#' @param docx.font font for the summary tables in the Word document
-#' @param docx.size font size for the summary tables in the Word document
+#' @param file filepath PK(PD) dataset produced by pk_build().
+#' @param strat.by vector of variables names to stratify the summary tables.
+#' @param ignore.c ignores records flagged in the C column when TRUE.
+#' @param na numeric value interpreted by -999.
+#' @param docx creates summary tables as a Word document when TRUE.
+#' @param pptx creates summary tables as a PowerPoint document when TRUE.
+#' @param docx.font font for the summary tables in the Word document.
+#' @param docx.size font size for the summary tables in the Word document.
 #' @param docx.template filepath for template .docx file. When NULL, the summary tables print to a blank document.
 #' @param pptx.template filepath for template .pptx file. When NULL, the summary tables print to a blank slide.
-#' @param pptx.font font for the summary tables in the PowerPoint document
-#' @param pptx.size font size for the summary tables in the PowerPoint document
-#' @param docx.orientation orientation of .docx files
+#' @param pptx.font font for the summary tables in the PowerPoint document.
+#' @param pptx.size font size for the summary tables in the PowerPoint document.
+#' @param docx.orientation orientation of .docx files.
 #' @param dir filepath for output directory. When NA, all files output to the same directory as the file parameter.
+#' @param ignore.request vector of additional logical expressions to filter the datase prior to summary.
 #'
 #' @return summary tables as .csv, .docx, and .pptx files
 #'
@@ -80,7 +81,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
                          docx.font="Times New Roman", docx.size=9,
                          docx.template=NULL, pptx.template=NULL,
                          pptx.font="Times New Roman", pptx.size=12,
-                         docx.orientation = "portrait", dir = NA, ignore_request = c()) {
+                         docx.orientation = "portrait", dir = NA, ignore.request = c()) {
 
   EVID <- Covariate <- Order <- ID <- NULL
 
@@ -165,25 +166,25 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 
   # START:  MICHAEL'S ADDITIONS
   # Filter will happen before any kind of processing.
-  # DESCRIPTION: The first thing that will happen is that we will se if there is any records to be
-  # ignored, and if there is we will places the "*Ignores recrods flagged by ...", and then after
-  # that we see if ignore.c is true, appending to the list of ignored records. We read from the 
+  # DESCRIPTION: The first thing that will happen is that we will see if there are any records to be
+  # ignored, and if there is we will places the "*Ignores records flagged by ...", and then after
+  # that we see if ignore.c is true, appending to the list of ignored records. We read from the
   # CSV to edit the data that the user has specified. Next, we break apart the vector of characters.
   # It's critical that the user only puts the operations in only the pattern of column operations and conditions.
   # After all of the QA, we pass the arguments into the filter function, and all of the operations
   # are flipped to make it easier for the user to see what actions have been performed on their data.
   ignored_records <- c()
-  
-  if (ignore.c == T || (length(ignore_request) != 0)) {
+
+  if (ignore.c == T || (length(ignore.request) != 0)) {
     ignored_records <- c(ignored_records, "*Ignores records flagged by")
   }
   if (ignore.c == T) {
     ignored_records <- c(ignored_records, "C")
   }
-  if (length(ignore_request) != 0) {
+  if (length(ignore.request) != 0) {
     valid_operations <- c("==", "<", "<=", ">=", ">", "!=")
-    df <- read.csv(file)
-    for (item in ignore_request) {
+    df <- utils::read.csv(file, na=".")
+    for (item in ignore.request) {
 
       # Break apart item to get colnames, operation, and value.
       item_separated_by_spaces <- strsplit(item, " ")
@@ -215,45 +216,45 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       }
 
       # df <- df %>% filter(eval(parse(text = item)))
-      df <- dplyr::filter(df, eval(parse(text = item)))
+      df <- dplyr::filter(df, !eval(parse(text = item)))
 
 
-     
 
-      # This will flip all of the operations that are done.
-      if (operation == "==") {
-        operation <- "!="
-        item = paste(column, operation, condition)
-      }
-      else if (operation == "!=") {
-        operation <- "=="
-        item = paste(column, operation, condition)
-      }
-      else if (operation == "<") {
-        operation <- ">"
-        item = paste(column, operation, condition)
-      }
-      else if (operation == "<=") {
-        operation <- ">="
-        item = paste(column, operation, condition)
-      }
-      else if (operation == ">") {
-        operation <- "<"
-        item = paste(column, operation, condition)
-      }
-      else if (operation == ">=") {
-        operation <- "<="
-        item = paste(column, operation, condition)
-      }
+
+      # # This will flip all of the operations that are done.
+      # if (operation == "==") {
+      #   operation <- "!="
+      #   item = paste(column, operation, condition)
+      # }
+      # else if (operation == "!=") {
+      #   operation <- "=="
+      #   item = paste(column, operation, condition)
+      # }
+      # else if (operation == "<") {
+      #   operation <- ">"
+      #   item = paste(column, operation, condition)
+      # }
+      # else if (operation == "<=") {
+      #   operation <- ">="
+      #   item = paste(column, operation, condition)
+      # }
+      # else if (operation == ">") {
+      #   operation <- "<"
+      #   item = paste(column, operation, condition)
+      # }
+      # else if (operation == ">=") {
+      #   operation <- "<="
+      #   item = paste(column, operation, condition)
+      # }
 
        # Add item to the ignored footer.
       ignored_records <- c(ignored_records, item)
-      
+
     }
-    temp_dir <- getwd()
-    temp_dir <- paste0(temp_dir, '/temp.csv')
-    write.csv(df, file = temp_dir)
-    file <- temp_dir
+    # temp_dir <- getwd()
+    # temp_dir <- paste0(temp_dir, '/temp.csv')
+    # utils::write.csv(df, file = temp_dir)
+    # file <- temp_dir
   }
   # END:  MICHAEL'S ADDITIONS.
 
@@ -274,7 +275,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
     stop(paste(dir, "is not a valid filepath."))
   }
 
-  orig <- utils::read.csv(file, na.strings=".")
+  if (length(ignore.request)==0) {
+    orig <- utils::read.csv(file, na.strings=".")
+  }
+
+  else {
+    orig <- df
+  }
 
   for (i in strat.by) {
     if (!i %in% colnames(orig)) {
@@ -450,14 +457,14 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 
       # START: Michael's additions
       # DESCRIPTION: This just addes to the footer of all of the operations on the data.
-      if (length(ignore_request) != 0) {
+      if (length(ignore.request) != 0) {
         ignored_string <- paste(ignored_records, collapse = ", ")
       }
       else {
         ignored_string <- ignored_records
       }
-      
-      if (ignore.c==T || length(ignore_request) != 0) {
+
+      if (ignore.c==T || length(ignore.request) != 0) {
         # df.summary1 <- df.summary1 %>%
         #   flextable::add_footer_lines(values = ignored_string)
         df.summary1 <- flextable::add_footer_lines(df.summary1, values = ignored_string)
@@ -609,7 +616,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 
       # START: Michael's additions
       # DESCRIPTION: This just addes to the footer of all of the operations on the data.
-      if (ignore.c==T || length(ignore_request) != 0) {
+      if (ignore.c==T || length(ignore.request) != 0) {
         cov1 <- flextable::add_footer_lines(cov1, values = ignored_string)
       }
       # END:   Michael's additions
@@ -786,8 +793,8 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         #   cov1 <- flextable::add_footer_lines(cov1, values = "*Ignores records flagged by C")
         # }
       # START: Michael's additions
-      # DESCRIPTION: This just addes to the footer of all of the operations on the data.      
-      if (ignore.c==T || length(ignore_request) != 0) {
+      # DESCRIPTION: This just addes to the footer of all of the operations on the data.
+      if (ignore.c==T || length(ignore.request) != 0) {
         cov1 <- flextable::add_footer_lines(cov1, values = ignored_string)
 
       }

@@ -18,37 +18,40 @@ pk_summarize(
   pptx.font = "Times New Roman",
   pptx.size = 12,
   docx.orientation = "portrait",
-  dir = NA
+  dir = NA,
+  ignore.request = c()
 )
 }
 \arguments{
-\item{file}{filepath PK(PD) dataset produced by pk_build()}
+\item{file}{filepath PK(PD) dataset produced by pk_build().}
 
-\item{strat.by}{vector of variables names to stratify the summary tables}
+\item{strat.by}{vector of variables names to stratify the summary tables.}
 
-\item{ignore.c}{ignores records flagged in the C column when TRUE}
+\item{ignore.c}{ignores records flagged in the C column when TRUE.}
 
-\item{na}{numeric value interpreted by -999}
+\item{na}{numeric value interpreted by -999.}
 
-\item{docx}{creates summary tables as a Word document when TRUE}
+\item{docx}{creates summary tables as a Word document when TRUE.}
 
-\item{pptx}{creates summary tables as a PowerPoint document when TRUE}
+\item{pptx}{creates summary tables as a PowerPoint document when TRUE.}
 
-\item{docx.font}{font for the summary tables in the Word document}
+\item{docx.font}{font for the summary tables in the Word document.}
 
-\item{docx.size}{font size for the summary tables in the Word document}
+\item{docx.size}{font size for the summary tables in the Word document.}
 
 \item{docx.template}{filepath for template .docx file. When NULL, the summary tables print to a blank document.}
 
 \item{pptx.template}{filepath for template .pptx file. When NULL, the summary tables print to a blank slide.}
 
-\item{pptx.font}{font for the summary tables in the PowerPoint document}
+\item{pptx.font}{font for the summary tables in the PowerPoint document.}
 
-\item{pptx.size}{font size for the summary tables in the PowerPoint document}
+\item{pptx.size}{font size for the summary tables in the PowerPoint document.}
 
-\item{docx.orientation}{orientation of .docx files}
+\item{docx.orientation}{orientation of .docx files.}
 
 \item{dir}{filepath for output directory. When NA, all files output to the same directory as the file parameter.}
+
+\item{ignore.request}{vector of additional logical expressions to filter the datase prior to summary.}
 }
 \value{
 summary tables as .csv, .docx, and .pptx files
