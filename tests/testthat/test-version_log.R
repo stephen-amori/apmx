@@ -116,6 +116,7 @@ test_that("QC Checks", {
     expect_error(version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")),
     "This file is not the most recent dataset version")
 
+    # Check to see that there is only one file.
     out <- paste0(getwd(), "/version_log-data")
     files_to_append <- list.files(out, pattern = "^V.*", full.names = TRUE)
     expect_length(files_to_append, 1)
