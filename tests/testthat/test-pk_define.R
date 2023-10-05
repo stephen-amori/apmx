@@ -1,6 +1,7 @@
-library(testthat)
-library(tidyr)
+# LIBRARIES FOR DEBUGGING PURPOSES:
+# library(testthat)
 # library(apmx)
+library(tidyr)
 library(tibble)
 library(dplyr)
 
@@ -126,5 +127,5 @@ test_that("Checking to see if define file was created", {
           template      = "test-pk-define-files/template_define.docx")
         # This writes in place.
         expect_true(file.exists("test-pk-define-files\\DEFINE_pkdf.docx"))
-        unlink("test-pk-define-files/DEFINE_pkdf.docx")
+        unlink("test-pk-define-files\\DEFINE_pkdf.docx")
 })

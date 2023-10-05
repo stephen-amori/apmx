@@ -1,26 +1,9 @@
-# This is for debugging. Need this library.
-# To download this library we need to use:
-# devtools::install_github("ManuelHentschel/vscDebugger")
-# library(vscDebugger)
-# When debugging we need to load in all of the libraries. Below is the R code does just that.
-# pkgload::load_all()
-#  library(vscDebugger)
-# install.packages("tidyr")
-# library(tidyr)
-# pkgload::load_all()
-# rm(list = c("pk_write"))
-library(testthat)
+# LIBRARIES FOR DEBUGGING PURPOSES:
+# library(testthat)
+# library(apmx)
 library(tidyr)
-# library(dplyr)
-# library(haven)
-# devtools::install_github("stephen-amori/apmx")
-library(apmx)
 library(tibble)
 library(dplyr)
-# library(flextable)
-# library(xfun)
-
-
 
 # START of Global variables
 ex_iso_dates <- c( "2023-05-17T08:30:00Z",

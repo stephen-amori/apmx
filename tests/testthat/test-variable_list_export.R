@@ -59,13 +59,13 @@ pkdf <- pk_build(ex = ex,
 
 test_that("variable_list_export QC", {
     # source("R/variable_list_export.R")
-    # Checking to see if 
+    
     expect_error(variable_list_export("not-valid-path"), "not-valid-path is not a valid filepath.")
     current_path <- getwd()
     expect_error(variable_list_export(current_path), "filepath must include document name and .csv suffix.")
-    current_path <- paste0(current_path, "/variable_list_export-supporting-files/export_test.csv")
-    print(current_path)
+    current_path <- paste0(current_path, "/test-pk-define-files/pkdf4.csv")
+    # print(current_path)
     variable_list_export(current_path)
     expect_true(file.exists(current_path))
-    unlink(current_path)
+    # unlink(current_path)
 })
