@@ -329,7 +329,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         stop(paste0("Column ", i, " in pd is not numeric type."))
       }
 
-      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(pd[, i]))) {
+      if (i %in% c("USUBJID", "VISIT", "TPTC", "DVID", "DVIDU") & !is.character(unlist(pd[, i]))) { # nolint
         stop(paste0("Column ", i, " in pd is not character type."))
       }
 

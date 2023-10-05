@@ -124,6 +124,7 @@ test_that("Checking to see if define file was created", {
           na = -999,
           variable.list = "test-pk-define-files/test-variable-list.csv",
           template      = "test-pk-define-files/template_define.docx")
-        expect_true(file.exists("test-pk-define-files/DEFINE_pkdf.docx"))
+        # This writes in place.
+        expect_true(file.exists("test-pk-define-files\\DEFINE_pkdf.docx"))
         unlink("test-pk-define-files/DEFINE_pkdf.docx")
 })
