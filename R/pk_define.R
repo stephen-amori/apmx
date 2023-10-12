@@ -367,9 +367,9 @@ pk_define <- function(file, project, variable.list, template=NULL,
   }
 
   define <- flextable::add_footer_lines(define,
-                                        values = '*NA parameters and missing character-type covariates labeled with "."')
+                                        values = 'NA parameters and missing character-type covariates labeled with "."')
   define <- flextable::add_footer_lines(define,
-                                        values = paste("**Missing numeric-type covariates labeled with", na))
+                                        values = paste("Missing numeric-type covariates labeled with", na))
 
   ###WRITE DEFINITION FILE TO SERVER###
   if (is.null(template)) {

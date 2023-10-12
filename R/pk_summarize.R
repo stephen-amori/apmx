@@ -83,7 +83,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
                          pptx.font="Times New Roman", pptx.size=12,
                          docx.orientation = "portrait", dir = NA, ignore.request = c()) {
 
-  EVID <- Covariate <- Order <- ID <- NULL
+  EVID <- Covariate <- Order <- ID <- NSTUDYC <- NULL
 
   ###QC###
   #make sure filepath is valid
@@ -288,6 +288,8 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       stop(paste("Column", i, "does not exist in the PK(PD) dataset"))
     }
   }
+
+  orig <- dplyr::mutate(orig, NSTUDYC = as.character(NSTUDYC))
 
   for (i in strat.by) {
     if (ignore.c==T) {

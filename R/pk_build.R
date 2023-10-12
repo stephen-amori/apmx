@@ -84,7 +84,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   NTLC <- RATE <- LDV <- C <- SUBJID <- ID <- MDV <- LLOQ <- LINE <- NULL
   VISIT <- TPTC <- DOMAIN <- DVIDU <- VERSN <- BUILD <- DNTFD <- TIMEF <- NULL
   dvids <- NULL
-  func.version <- "0.3.4"
+  func.version <- "0.3.5"
 
   ###EX QC###
   cdisc.cols.ex <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",
@@ -131,6 +131,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   ex.col.n <- c("DOSENUM", "DOSEA")
   for (i in 1:length(colnames(ex))) {
     name = colnames(ex)[i]
+
+    if (is.integer(unlist(ex[, name]))) {
+      ex[, name] <- as.numeric(ex[, name])
+    }
+
     if (name %in% c("STUDY", "ROUTE", "FRQ")) {
       if(!is.character(unlist(ex[,name]))) {
         stop(paste(name, "in ex must be character type."))
@@ -267,6 +272,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     }
 
     for (i in colnames(pc)) {
+
+      if (is.integer(unlist(pc[, i]))) {
+        pc[, i] <- as.numeric(pc[, i])
+      }
+
       if (!any(i %in% req.cols)) {
         if(is.character(unlist(pc[, i])) & !i %in% c("DOMAIN")) {
           pc.col.c <- c(pc.col.c, i)
@@ -339,6 +349,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     }
 
     for (i in colnames(pd)) {
+
+      if (is.integer(unlist(pd[, i]))) {
+        pd[, i] <- as.numeric(pd[, i])
+      }
+
       if (!any(i %in% req.cols)) {
         if(is.character(unlist(pd[, i])) & i!="DOMAIN") {
           pd.col.c <- c(pd.col.c, i)
@@ -644,6 +659,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     df <- dplyr::group_by(df, USUBJID, EVID)
     df <- dplyr::mutate(df, FDOSE = ifelse(EVID==1 & dplyr::row_number()==1, as.character(DTIM), NA))
     df <- dplyr::ungroup(df)
+    if (!is.na(impute)) {
+      if (impute==1) {
+        df <- dplyr::arrange(df, USUBJID, NTFD)
+      }
+    }
     df <- dplyr::group_by(df, USUBJID)
     df <- tidyr::fill(df, NDOSE1, NDOSE2, .direction="downup")
     df <- dplyr::ungroup(df)
@@ -679,7 +699,11 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     df <- dplyr::select(df, -LDOSE1, -LDOSE2, -NDOSE1, -NDOSE2, -tII)
 
   ###IMPUTATION METHODS###
-  if (!is.na(impute)) {
+  if(is.na(impute)) {
+    impute <- 3
+  }
+
+  if (impute!=3) {
     if (impute==1) {
       df <- dplyr::mutate(df,
                           IMPEX = ifelse(is.na(ATFD) & !is.na(NTFD) & EVID==1, 1, IMPEX),
@@ -1061,7 +1085,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   ###FLAG ITEMS###
   dvid.dv <- sort(unique(dplyr::filter(df, EVID==0)$DVID))
-  if(!is.na(impute)) {
+  if(impute!=3) {
     if (impute==2) {
       flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", dvid.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPFEX", "IMPDV")
     }
@@ -1069,7 +1093,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", dvid.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPDV")
     }
   }
-  if (is.na(impute)) {
+  if (impute==3) {
     flags <- c("PDOSEF", "TIMEF", "AMTF", "DUPF", "NOEXF", paste0("NODV", dvid.dv, "F"), "SDF", "PLBOF", "SPARSEF", "TREXF", "IMPEX", "IMPDV")
   }
 
@@ -1127,7 +1151,9 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
 
   #PDOSEF, TIMEF, PLBOF
   df <- dplyr::mutate(df,
-                      PDOSEF = ifelse(ATFD<0, 1, 0), #pre-dose flag
+                      PDOSEF = dplyr::case_when(ATFD<0 ~ 1,
+                                                ATFD==0 & EVID==0 ~ 1,
+                                                TRUE ~ 0), #pre-dose flag
                       TIMEF = ifelse(is.na(ATFD), 1, 0), #missing ATFD flag
                       PLBOF = ifelse(DOSEA==0, 1, 0), #placebo flag
                       C = dplyr::case_when(PDOSEF==1 ~ "C",
@@ -1211,7 +1237,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   df <- dplyr::mutate(df,
                       ID = match(USUBJID, unique(df$USUBJID)),
                       TIMEU = time.units,
-                      SUBJID = gsub("\\D+", "", USUBJID),
+                      SUBJID = as.numeric(gsub("\\D+", "", USUBJID)),
                       LINE = dplyr::row_number(),
                       DTIM = as.character(DTIM),
                       FDOSE = as.character(FDOSE),
@@ -1222,9 +1248,6 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   df <- tidyr::fill(df, NSTUDY, NSTUDYC, .direction="downup")
   df <- dplyr::ungroup(df)
   df <- dplyr::mutate(df, NSTUDY = ifelse(is.na(NSTUDY), na, NSTUDY))
-  df <- dplyr::mutate_at(df,
-                         .vars = c(ex.col.c, pc.col.c, pd.col.c, cat.cov.c),
-                         .funs = function(x) toupper(x))
 
   df <- dplyr::select(df,
                       C, tidyselect::all_of(stud.col.n), SUBJID, ID, ATFD, ATLD, NTFD, NTLC, NTLD, NDAY, TPT,

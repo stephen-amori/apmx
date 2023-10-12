@@ -234,7 +234,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   if (TRUE %in% is.na(df[, id.by])) {
     stop(paste(id.by, "is missing for at least one row."))
   }
-  if (nrow(unique(df[, id.by])) > length(unique(cov[, id.by]))) {
+  if (length(unique(df[, id.by])) > length(unique(cov[, id.by]))) {
     warning("At least one subject is included in the dataframe (df), but not in covariate dataframe (cov).")
   }
 
