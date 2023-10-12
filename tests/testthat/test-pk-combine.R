@@ -100,27 +100,36 @@ test_that("PK Combine QC Triggering Events", {
     # source("R/pk_combine.R")
     # source("R//PK_ASSEMBLY.R")
     EX$FAILURE <- 22
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
+
     expect_warning(pk_combine(pkdf, pkdf2), "Column names do not match between both datasets")
     # Removing the FAILURE column.
     EX <- EX %>% select(-FAILURE)
     # Going to add a USUBJID into the data set so that not all values are unique.
     EX2$USUBJID[1] <- "A1"
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
-    expect_error(pk_combine(pkdf, pkdf2), "At least one USUBJID exists in both datasets. Please ensure all USUBJID values are unique.")
+    suppressWarnings({
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+        expect_error(pk_combine(pkdf, pkdf2), "At least one USUBJID exists in both datasets. Please ensure all USUBJID values are unique.")
+    })
 
     # Now we are going to trigger "At least one NSTUDYC exists in both datasets."
     EX2$USUBJID[1] <- "D1"
     EX2$STUDYID[1] <- "STUDYID"
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
+    
     expect_warning(pk_combine(pkdf, pkdf2), "At least one NSTUDYC exists in both datasets")
 
     # Changing time units so that they are not equal in both datasets.
     EX2$STUDYID[1] <- "STUDY1"
-    pkdf2 <- pk_build(ex = EX2, pc = PC2, time.units = "hours")
-    expect_error(pk_combine(pkdf, pkdf2), "Time units must be equal between both datasets.")
-  
+    suppressWarnings({
+        pkdf2 <- pk_build(ex = EX2, pc = PC2, time.units = "hours")
+        expect_error(pk_combine(pkdf, pkdf2), "Time units must be equal between both datasets.")
+    })
 })
 
 test_that("PK Combine, checking DVID and DVIDC are the same.", {
@@ -128,33 +137,45 @@ test_that("PK Combine, checking DVID and DVIDC are the same.", {
     # source("R/pk_combine.R")
     # Making a DVID not the same for EX to EX2.
     EX$DVID[1] = "FAILURE"
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
+
     expect_error(pk_combine(pkdf, pkdf2, "DVID and DVIDC observation assignments are not the same bewteen both datasets"))
 
     # Testing Compartments.
     EX$DVID[1] = "BP"
     EX$CMT[1] = 1293842
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
     expect_warning(pk_combine(pkdf, pkdf2), "CMT = 1293842 not included in df2")
 
     # Triggering "DVID and CMT assignments are not the same between both datasets"
     EX$CMT[1] = 0
     EX$CMT[3] = 6
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
     # Making this 2 so it will through the error.
     pkdf2$DVID <- 2
-    expect_error(pk_combine(pkdf, pkdf2), "DVID and CMT assignments are not the same between both datasets") 
+    # Known warning: "DVID and CMT assignments are not the same between both datasets"
+    suppressWarnings({
+        expect_error(pk_combine(pkdf, pkdf2), "DVID and CMT assignments are not the same between both datasets") 
+    })
 })
 
 test_that("Combining datasets", {
     # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
     # source("R/pk_combine.R")
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
     comb <- pk_combine(pkdf, pkdf2)
     # Checking the location of the columns after reordering.
     expect_equal(names(comb[2]), "NSTUDY")

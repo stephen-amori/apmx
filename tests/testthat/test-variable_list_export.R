@@ -23,7 +23,8 @@ ex <- EX %>%
 
 
 
-
+# Code ran outside of testthat().
+suppressWarnings({
 pc <- PC %>%
   dplyr::filter(PCSTAT=="Y") %>%
   dplyr::mutate(CMT = 2,
@@ -42,6 +43,7 @@ pc <- PC %>%
                 TPT = TPT/24) %>%
   dplyr::select(USUBJID, PCDTC, NDAY, VISIT, TPT, PCSTRESN,
                 PCLLOQ, CMT, PCTEST, PCTPT, PCSTRESU)
+})
 
 dm <- DM %>%
   dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC)

@@ -54,7 +54,9 @@ test_that("Filter out (new addition!)", {
     # source("R/pk_build.R")
     # source("R/pk_summarize.R")
 
-    pkdf <- pk_build(ex = EX, pc = PC)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+    })
     dir <- paste0(getwd(), "/test-pk-summarize-files/test1.csv")
     
     # dir <- "C://Users//michael.dick//Documents//apmx//temp-csvs//test1.csv"
@@ -74,7 +76,9 @@ test_that("Filter out (new addition!)", {
 # This writes to a file and we check if they exist.
 test_that("Writing CSVs", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = EX, pc = PC)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+    })
     working_dir <- getwd()
     working_dir <- paste0(working_dir, "/test-pk-summarize-files/test1.csv")
     pk_write(pkdf, working_dir)
@@ -96,7 +100,9 @@ test_that("Writing CSVs", {
 # Testing Word and PowerPoint Docs.
 test_that("Testing Word and PowerPoint", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = EX, pc = PC)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+    })
     working_dir <- getwd()
     # DEBUG: (These filepaths are for when you're not using devtools::test().)
     # data_dir <- paste0(working_dir, "/tests/testthat/test-pk-summarize-files/test1.csv")

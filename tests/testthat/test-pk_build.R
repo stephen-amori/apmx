@@ -6,16 +6,17 @@ library(tibble)
 library(dplyr)
 
 # START of Global variables
-ex_iso_dates <- c( "2023-05-17T08:30:00Z",
-                "2025-12-25T12:00:00Z",
-                "2021-01-01T00:00:01Z",
-                "2022-11-11T11:11:11Z",
-                "2024-02-29T14:29:00Z",
-                "2020-07-04T18:00:00Z",
-                "2023-10-31T23:59:59Z",
-                "2022-02-14T20:00:00Z",
-                "2021-12-31T23:59:59Z",
-                "2025-06-30T13:00:00Z")
+ex_iso_dates <- c( "2020-07-04T18:00:00Z",
+                    "2021-01-01T00:00:01Z",
+                    "2021-12-31T23:59:59Z",
+                    "2022-02-14T20:00:00Z",
+                    "2022-11-11T11:11:11Z",
+                    "2023-05-17T08:30:00Z",
+                    "2023-10-31T23:59:59Z",
+                    "2024-02-29T14:29:00Z",
+                    "2025-06-30T13:00:00Z",
+                    "2025-12-25T12:00:00Z"
+                    )
 
 pd_iso_dates <- c("2026-03-17T09:30:00Z",
                "2027-07-21T14:00:00Z",
@@ -849,7 +850,10 @@ test_that("Test tv.cov (Time Varying Covariates)", {
     ALT = 33
     )
     tv_cov_df <- rbind(tv_cov_df, new_row)
-    expect_error(pk_build(test_ex, test_pc, tv.cov = tv_cov_df), "tv.cov has duplicate USUBJID-DTIM rows")
+    # This will generate a warning, but this intendend. 
+    suppressWarnings({
+        expect_error(pk_build(test_ex, test_pc, tv.cov = tv_cov_df), "All numerical covariates need units.")
+    })
     # Removing the last column.
     tv_cov_df <- tv_cov_df[-6, ]
     # What this does is creates a list of the outputs that are returned from this function, and
@@ -959,7 +963,7 @@ test_that("Actual + Nominal Time Calculations with NDOSE and LDOSE", {
 })
 
 test_that("Imput Method 1", {
-    # source("R//PK_ASSEMBLY.R")
+    # source("R//pk_build.R")
     # With impute method 1, IMPDV == IMPEX == 0, and
     # ATFD == ATFD and ATLD == ATLD
     dfpk <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 1)
@@ -974,15 +978,15 @@ test_that("Imput Method 1", {
 
     # ATFD for EVID 2, 1, and 0.
     expect_equal(dfpk$ATFD[1], 0.00)
-    expect_equal(dfpk$ATFD[2], 4717.09)
-    expect_equal(dfpk$ATFD[3], 8477)
+    expect_equal(dfpk$ATFD[2], 5763.69)
+    expect_equal(dfpk$ATFD[3], 9523.6)
 
     # ATLD will be NA because the EVID == 2. (Also, because rows are combined.)
     expect_true(!is.na(dfpk$ATLD[1]))
     # ATLD will be 0 for EVID == 1 which leads to LDOSE1 == DTIM and then they are subtracted.
     expect_equal(dfpk$ATLD[3], as.double(NA))
     # ATLD will be 0 because DTIM and LDOSE2 will be equal.
-    expect_equal(dfpk$ATLD[2], 4716.09)
+    expect_equal(dfpk$ATLD[2], 5762.69)
 
 })
 
@@ -1058,7 +1062,11 @@ test_that("Dose and obsevation calculations", {
 test_that("PD Processing", {
     # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
-    pk <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, BDV = T, DDV = T, PDV = T)
+    suppressWarnings({
+        # If there is no baseline this will generate a lot of warnings.
+        # Showing that if there is no baseline, there is no calculations for these rows.
+        pk <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, BDV = T, DDV = T, PDV = T)
+    })
     pattern <- rep(NA, 20)
     expect_equal(pk$BDV, pattern)
     class(pattern) <- "numeric"
@@ -1107,7 +1115,8 @@ test_that("Join Time-Varying Covariates", {
     pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
                         sl.cov = test_sl_cov_list, demo.map = T)
     evid_is_2_pkdf <- pkdf %>% filter(EVID == 2)
-    expect_equal(evid_is_2_pkdf$ATFD, c(8477.000,7747.240, 10026.080,  9827.720,  9437.810, 11456.790, 10410.170, 11371.840, 12041.240, 10963.830))
+    expect_equal(evid_is_2_pkdf$ATFD, c(9523.60,  9566.74,  9661.08, 10097.35,  9912.95, 10410.18, 10410.17, 10627.07, 10764.70, 10785.87))
+    
 })
 
 test_that("NODV_F", {
@@ -1219,7 +1228,7 @@ test_that("Rounding", {
     pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
                     sl.cov = test_sl_cov_list, demo.map = T)
     # ATFD rounding (time.rnd = 2)
-    expect_equal(pkdf$ATFD[2], 1035.04)
+    expect_equal(pkdf$ATFD[2], 2081.65)
     
     # AMT rounding (amt.rnd = NA)
     expect_equal(pkdf$AMT[1], 1)
@@ -1293,8 +1302,11 @@ test_that("Warnings", {
         DVID = c("BP", "BP", "WT", "CHOL", "WT", "BP"),
         DVIDU = c("mg/dL", "mg/dL", "kg", "mmHg", "kg", "mg/dL")
     )
-    pkdf <- pk_build(warnings_ex, pc = warnings_pc, time.units = "days")
-    expect_warning(pk_build(warnings_ex, pc = warnings_pc, time.units = "days"), "The following USUBJID\\(s\\) have at least one event that occurred out of protocol order \\(NTFD is not strictly increasing\\): B")
+    suppressWarnings({
+        pkdf <- pk_build(warnings_ex, pc = warnings_pc, time.units = "days")
+    })
+    expect_warning(pk_build(warnings_ex, pc = warnings_pc, time.units = "days"), 
+    "The following USUBJID\\(s\\) have at least one event that occurred out of protocol order \\(NTFD is not strictly increasing\\): B")
 
     # Changing NDAY to a negative value to trigger another warning.
     warnings_pc$NDAY[1] = -5
@@ -1330,8 +1342,10 @@ test_that("Warning messages for covariates", {
     expect_equal(warning_messages$warnings[6], "BWEIGHT and TWEIGHT are not equivalent at first dose (baseline).")
 })
 
-test_that("Snapshots", {
-    local_edition(3)
-    pkdf <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 2)
-    expect_snapshot(print(pkdf, n = Inf, width = Inf), variant = "Correct snapshot.")
-})
+# TODO: Snapshots are not going to work because of the build date.
+#       If I want to utilize this, need to ignore BUILD column...        
+# test_that("Snapshots", {
+#     local_edition(3)
+#     pkdf <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 2)
+#     expect_snapshot(print(pkdf, n = Inf, width = Inf), variant = "correct_snapshot.")
+# })

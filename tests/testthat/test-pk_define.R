@@ -98,7 +98,10 @@ PC2 <- data.frame(
 #################### END: DUMMY DATA ####################
 
 test_that("pk_define QC Checks", {
-    pkdf <- pk_build(ex = EX, pc = PC)
+    # Dummy data produces warnings.
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+    })
     # Use line below if using testthat.
     pk_write(pkdf, file = "test-pk-define-files/pkdf.csv")
 
@@ -120,11 +123,15 @@ test_that("pk_define QC Checks", {
 })
 
 test_that("Checking to see if define file was created", {
-    pk_define(file = "test-pk-define-files/pkdf.csv",
-          project = "Testings",
-          na = -999,
-          variable.list = "test-pk-define-files/test-variable-list.csv",
-          template      = "test-pk-define-files/template_define.docx")
+    # A many to many relationship from a left join.
+    # Suppressing this warning.
+    suppressWarnings({
+        pk_define(file = "test-pk-define-files/pkdf.csv",
+                  project = "Testings",
+                  na = -999,
+                  variable.list = "test-pk-define-files/test-variable-list.csv",
+                  template      = "test-pk-define-files/template_define.docx")
+    })
         # This writes in place.
         expect_true(file.exists("test-pk-define-files\\DEFINE_pkdf.docx"))
         unlink("test-pk-define-files\\DEFINE_pkdf.docx")
