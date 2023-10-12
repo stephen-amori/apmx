@@ -1330,7 +1330,6 @@ test_that("Warnings", {
 })
 
 test_that("Warning messages for covariates", {
-    # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
     test_tv.cov$SEX <- c("F", "F", "F", "M", "F", "M", "M", "M", "ASFAFS", "M")
     test_ex$NDAY = -1
@@ -1341,11 +1340,10 @@ test_that("Warning messages for covariates", {
     expect_equal(warning_messages$warnings[3], "NSEX and TSEX are not equivalent at first dose (baseline).")
     expect_equal(warning_messages$warnings[6], "BWEIGHT and TWEIGHT are not equivalent at first dose (baseline).")
 })
-
-# TODO: Snapshots are not going to work because of the build date.
-#       If I want to utilize this, need to ignore BUILD column...        
-# test_that("Snapshots", {
-#     local_edition(3)
-#     pkdf <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 2)
-#     expect_snapshot(print(pkdf, n = Inf, width = Inf), variant = "correct_snapshot.")
-# })
+       
+test_that("Snapshots", {
+    local_edition(3)
+    pkdf <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 2)
+    pkdf <- pkdf %>% select(-BUILD)
+    expect_snapshot(print(pkdf, n = Inf, width = Inf), variant = "correct_snapshot")
+})

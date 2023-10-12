@@ -26,7 +26,8 @@ Imports:
   officer (>= 0.6.2),
   tidyselect (>= 1.1.0),
   utils (>= 4.2.3),
-  arsenal (>= 3.6.3)
+  arsenal (>= 3.6.3),
+  testthat (>= 3.0.0)
 RoxygenNote: 7.2.3
 URL: https://github.com/stephen-amori/apmx
 BugReports: https://github.com/stephen-amori/apmx/issues

@@ -6,17 +6,17 @@ library(tibble)
 library(dplyr)
 
 #################### START: DUMMY DATA ####################
-ex_iso_dates <- c( "2023-05-17T08:30:00Z",
-            "2025-12-25T12:00:00Z",
-            "2021-01-01T00:00:01Z",
-            "2022-11-11T11:11:11Z",
-            "2024-02-29T14:29:00Z",
-            "2020-07-04T18:00:00Z",
-            "2023-10-31T23:59:59Z",
-            "2022-02-14T20:00:00Z",
-            "2021-12-31T23:59:59Z",
-            "2025-06-30T13:00:00Z"
-)
+ex_iso_dates <- c( "2020-07-04T18:00:00Z",
+                    "2021-01-01T00:00:01Z",
+                    "2021-12-31T23:59:59Z",
+                    "2022-02-14T20:00:00Z",
+                    "2022-11-11T11:11:11Z",
+                    "2023-05-17T08:30:00Z",
+                    "2023-10-31T23:59:59Z",
+                    "2024-02-29T14:29:00Z",
+                    "2025-06-30T13:00:00Z",
+                    "2025-12-25T12:00:00Z"
+                    )
 EX <- data.frame(
     STUDYID = rep("STUDYID", 6),
     USUBJID = c("A1", "A1", "B2", "B2", "C3", "C3"),
@@ -48,6 +48,20 @@ PC <- data.frame(
     DVIDU = "mg/dL"
 )
 
+EX$NDAY <- rep(c(1, 2), length.out = nrow(EX))
+PC$NDAY <- rep(c(1, 2), length.out = nrow(PC))
+
+EX <- EX %>%
+  group_by(USUBJID) %>%
+  arrange(NDAY, DTIM) %>%
+  ungroup()
+
+PC <- PC %>%
+  group_by(USUBJID) %>%
+  arrange(NDAY, DTIM) %>%
+  ungroup()
+
+
 second_iso_dates <- c( 
   "2022-08-17T12:40:30Z",
   "2020-11-25T14:50:00Z",
@@ -60,6 +74,7 @@ second_iso_dates <- c(
   "2023-10-11T22:39:59Z",
   "2022-06-20T11:00:00Z"
 )
+second_iso_dates <- second_iso_dates[order(second_iso_dates, decreasing = TRUE)]
 
 EX2 <- data.frame(
     STUDYID = c("STUDY1", "STUDY2", "STUDY1", "STUDY2", "STUDY1", "STUDY2"),
@@ -169,7 +184,6 @@ test_that("PK Combine, checking DVID and DVIDC are the same.", {
 })
 
 test_that("Combining datasets", {
-    # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
     # source("R/pk_combine.R")
     suppressWarnings({
@@ -186,7 +200,7 @@ test_that("Combining datasets", {
 
     # Checking random values.
     expect_equal(comb$BAGE[6], 42)
-    expect_equal(comb$DOSEA[20], 62)
+    expect_equal(comb$DOSEA[20], 22)
     expect_equal(comb$USUBJID[16], "D1")
     expect_equal(comb$DVIDU[22], "mg/dL")
     expect_equal(comb$DOSEA[6], 13)
@@ -195,3 +209,5 @@ test_that("Combining datasets", {
     expect_equal(comb$BAGE[1], -999)
 
 })
+
+
