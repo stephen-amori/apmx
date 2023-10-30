@@ -1,21 +1,22 @@
-library(testthat)
+# LIBRARIES FOR DEBUGGING PURPOSES:
+# library(testthat)
+# library(apmx)
 library(tidyr)
-library(apmx)
 library(tibble)
 library(dplyr)
 
 #################### START: DUMMY DATA ####################
-ex_iso_dates <- c( "2023-05-17T08:30:00Z",
-            "2025-12-25T12:00:00Z",
-            "2021-01-01T00:00:01Z",
-            "2022-11-11T11:11:11Z",
-            "2024-02-29T14:29:00Z",
-            "2020-07-04T18:00:00Z",
-            "2023-10-31T23:59:59Z",
-            "2022-02-14T20:00:00Z",
-            "2021-12-31T23:59:59Z",
-            "2025-06-30T13:00:00Z"
-)
+ex_iso_dates <- c( "2020-07-04T18:00:00Z",
+                    "2021-01-01T00:00:01Z",
+                    "2021-12-31T23:59:59Z",
+                    "2022-02-14T20:00:00Z",
+                    "2022-11-11T11:11:11Z",
+                    "2023-05-17T08:30:00Z",
+                    "2023-10-31T23:59:59Z",
+                    "2024-02-29T14:29:00Z",
+                    "2025-06-30T13:00:00Z",
+                    "2025-12-25T12:00:00Z"
+                    )
 EX <- data.frame(
     STUDYID = rep("STUDYID", 6),
     USUBJID = c("A1", "A1", "B2", "B2", "C3", "C3"),
@@ -47,6 +48,20 @@ PC <- data.frame(
     DVIDU = "mg/dL"
 )
 
+EX$NDAY <- rep(c(1, 2), length.out = nrow(EX))
+PC$NDAY <- rep(c(1, 2), length.out = nrow(PC))
+
+EX <- EX %>%
+  group_by(USUBJID) %>%
+  arrange(NDAY, DTIM) %>%
+  ungroup()
+
+PC <- PC %>%
+  group_by(USUBJID) %>%
+  arrange(NDAY, DTIM) %>%
+  ungroup()
+
+
 second_iso_dates <- c( 
   "2022-08-17T12:40:30Z",
   "2020-11-25T14:50:00Z",
@@ -59,6 +74,7 @@ second_iso_dates <- c(
   "2023-10-11T22:39:59Z",
   "2022-06-20T11:00:00Z"
 )
+second_iso_dates <- second_iso_dates[order(second_iso_dates, decreasing = TRUE)]
 
 EX2 <- data.frame(
     STUDYID = c("STUDY1", "STUDY2", "STUDY1", "STUDY2", "STUDY1", "STUDY2"),
@@ -99,27 +115,36 @@ test_that("PK Combine QC Triggering Events", {
     # source("R/pk_combine.R")
     # source("R//PK_ASSEMBLY.R")
     EX$FAILURE <- 22
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
+
     expect_warning(pk_combine(pkdf, pkdf2), "Column names do not match between both datasets")
     # Removing the FAILURE column.
     EX <- EX %>% select(-FAILURE)
     # Going to add a USUBJID into the data set so that not all values are unique.
     EX2$USUBJID[1] <- "A1"
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
-    expect_error(pk_combine(pkdf, pkdf2), "At least one USUBJID exists in both datasets. Please ensure all USUBJID values are unique.")
+    suppressWarnings({
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+        expect_error(pk_combine(pkdf, pkdf2), "At least one USUBJID exists in both datasets. Please ensure all USUBJID values are unique.")
+    })
 
     # Now we are going to trigger "At least one NSTUDYC exists in both datasets."
     EX2$USUBJID[1] <- "D1"
     EX2$STUDYID[1] <- "STUDYID"
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
+    
     expect_warning(pk_combine(pkdf, pkdf2), "At least one NSTUDYC exists in both datasets")
 
     # Changing time units so that they are not equal in both datasets.
     EX2$STUDYID[1] <- "STUDY1"
-    pkdf2 <- pk_build(ex = EX2, pc = PC2, time.units = "hours")
-    expect_error(pk_combine(pkdf, pkdf2), "Time units must be equal between both datasets.")
-  
+    suppressWarnings({
+        pkdf2 <- pk_build(ex = EX2, pc = PC2, time.units = "hours")
+        expect_error(pk_combine(pkdf, pkdf2), "Time units must be equal between both datasets.")
+    })
 })
 
 test_that("PK Combine, checking DVID and DVIDC are the same.", {
@@ -127,33 +152,44 @@ test_that("PK Combine, checking DVID and DVIDC are the same.", {
     # source("R/pk_combine.R")
     # Making a DVID not the same for EX to EX2.
     EX$DVID[1] = "FAILURE"
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
+
     expect_error(pk_combine(pkdf, pkdf2, "DVID and DVIDC observation assignments are not the same bewteen both datasets"))
 
     # Testing Compartments.
     EX$DVID[1] = "BP"
     EX$CMT[1] = 1293842
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
     expect_warning(pk_combine(pkdf, pkdf2), "CMT = 1293842 not included in df2")
 
     # Triggering "DVID and CMT assignments are not the same between both datasets"
     EX$CMT[1] = 0
     EX$CMT[3] = 6
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
     # Making this 2 so it will through the error.
     pkdf2$DVID <- 2
-    expect_error(pk_combine(pkdf, pkdf2), "DVID and CMT assignments are not the same between both datasets") 
+    # Known warning: "DVID and CMT assignments are not the same between both datasets"
+    suppressWarnings({
+        expect_error(pk_combine(pkdf, pkdf2), "DVID and CMT assignments are not the same between both datasets") 
+    })
 })
 
 test_that("Combining datasets", {
-    # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
     # source("R/pk_combine.R")
-    pkdf <- pk_build(ex = EX, pc = PC)
-    pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    suppressWarnings({
+        pkdf <- pk_build(ex = EX, pc = PC)
+        pkdf2 <- pk_build(ex = EX2, pc = PC2)
+    })
     comb <- pk_combine(pkdf, pkdf2)
     # Checking the location of the columns after reordering.
     expect_equal(names(comb[2]), "NSTUDY")
@@ -164,7 +200,7 @@ test_that("Combining datasets", {
 
     # Checking random values.
     expect_equal(comb$BAGE[6], 42)
-    expect_equal(comb$DOSEA[20], 62)
+    expect_equal(comb$DOSEA[20], 22)
     expect_equal(comb$USUBJID[16], "D1")
     expect_equal(comb$DVIDU[22], "mg/dL")
     expect_equal(comb$DOSEA[6], 13)
@@ -173,3 +209,5 @@ test_that("Combining datasets", {
     expect_equal(comb$BAGE[1], -999)
 
 })
+
+

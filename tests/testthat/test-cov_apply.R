@@ -1,8 +1,13 @@
+# LIBRARIES FOR DEBUGGING PURPOSES:
 library(testthat)
+# library(apmx)
 library(tidyr)
-library(apmx)
 library(tibble)
 library(dplyr)
+# source("R/pk_build.R")
+# source("R/cov_apply.R")
+
+
 
 #################### START: DUMMY DATA ####################
 
@@ -23,7 +28,7 @@ ex <- EX %>%
 
 
 
-
+suppressWarnings({
 pc <- PC %>%
   dplyr::filter(PCSTAT=="Y") %>%
   dplyr::mutate(CMT = 2,
@@ -42,6 +47,7 @@ pc <- PC %>%
                 TPT = TPT/24) %>%
   dplyr::select(USUBJID, PCDTC, NDAY, VISIT, TPT, PCSTRESN,
                 PCLLOQ, CMT, PCTEST, PCTPT, PCSTRESU)
+})
 
 dm <- DM %>%
   dplyr::select(USUBJID, AGE, SEX, RACE, ETHNIC)
@@ -175,6 +181,7 @@ test_that("Warnings for more subjects in PKDF than the Covariate dataframe.", {
       "At least one subject is included in the dataframe \\(df\\), but not in covariate dataframe \\(cov\\).")
 })
 
+# ERROR: THIS IS NOT TRIGGERING!
 test_that("Trigger warning about dupe values in covariate dataframe.", {
   # source("R/PK_ASSEMBLY.R")
   dm <- dm %>% mutate(DTIM = pkdf_cov_me$DTIM[1:22])
