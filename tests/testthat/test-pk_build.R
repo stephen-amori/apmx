@@ -53,17 +53,17 @@ tv.cov_iso_dates <- c("2046-08-01T08:45:00Z",
 
 
 
-test_ex_cols <- c(  "USUBJID", 
-                    "DTIM", 
+test_ex_cols <- c(  "USUBJID",
+                    "DTIM",
                     "NDAY",
-                    "TPT", 
-                    "AMT", 
-                    "STUDY", 
+                    "TPT",
+                    "AMT",
+                    "STUDY",
                     "VISIT",
-                    "TPTC", 
-                    "DVID", 
-                    "DVIDU", 
-                    "ROUTE", 
+                    "TPTC",
+                    "DVID",
+                    "DVIDU",
+                    "ROUTE",
                     "FRQ",
                     "ADDL",
                     "II",
@@ -224,17 +224,17 @@ test_tv_col_df_with_units <- data.frame(
 
 # testing column names
 test_that("testing USUBJID", {
-    test_ex_cols <- c("USUBJID_test", 
-                "EXSTDTC_test", 
+    test_ex_cols <- c("USUBJID_test",
+                "EXSTDTC_test",
                 "EXSTDY_test",
-                "EXTPTNUM_test", 
-                "EXDOSE_test", 
-                "STUDYID_test", 
+                "EXTPTNUM_test",
+                "EXDOSE_test",
+                "STUDYID_test",
                 "VISIT_test",
-                "EXTPT_test", 
-                "EXTRT_test", 
-                "EXDOSU_test", 
-                "EXROUTE_test", 
+                "EXTPT_test",
+                "EXTRT_test",
+                "EXDOSU_test",
+                "EXROUTE_test",
                 "EXDOSFRQ_test")
     df <- data.frame(a = 1:10,
                      b = 1:10,
@@ -256,17 +256,17 @@ test_that("testing USUBJID", {
 #'  This test checks to see that regex correctly reassigns
 #'  the values.
 test_that("column test for character type", {
-    test_ex_cols <- c("my_USUBJID", 
-                "my_EXSTDTC", 
+    test_ex_cols <- c("my_USUBJID",
+                "my_EXSTDTC",
                 "my_EXSTDY",
-                "my_EXTPTNUM", 
-                "my_EXDOSE", 
-                "my_STUDYID", 
+                "my_EXTPTNUM",
+                "my_EXDOSE",
+                "my_STUDYID",
                 "my_VISIT",
-                "my_EXTPT", 
-                "my_EXTRT", 
-                "my_EXDOSU", 
-                "my_EXROUTE", 
+                "my_EXTPT",
+                "my_EXTRT",
+                "my_EXDOSU",
+                "my_EXROUTE",
                 "my_EXDOSFRQ")
     df <- data.frame(usubjid    = 1:10,
                      exstdtc    = 1:10,
@@ -284,7 +284,7 @@ test_that("column test for character type", {
 
     expect_error(pk_build(df), "Column USUBJID in ex is not character type.")
     df$my_USUBJID <- letters[1:10]
-    
+
     expect_error(pk_build(df), "Column VISIT in ex is not character type.")
     df$my_VISIT <- letters[1:10]
 
@@ -293,7 +293,7 @@ test_that("column test for character type", {
     expect_error(pk_build(df), "Column TPTC in ex is not character type.")
     df$my_EXTPT <- letters[1:10]
 
-        
+
 
         expect_error(pk_build(df), "Column DVID in ex is not character type.")
     df$my_EXTRT <- letters[1:10]
@@ -311,17 +311,17 @@ test_that("column test for character type", {
 
 # '  Check to see if column is missing.
 test_that("Testing for missing column", {
-test_ex_cols <- c("my_USUBJID", 
-                "my_EXSTDTC", 
+test_ex_cols <- c("my_USUBJID",
+                "my_EXSTDTC",
                 "my_EXSTDY",
-                "my_EXTPTNUM", 
-                "my_EXDOSE", 
-                "my_STUDYID", 
+                "my_EXTPTNUM",
+                "my_EXDOSE",
+                "my_STUDYID",
                 # "my_VISIT",
-                "my_EXTPT", 
-                "my_EXTRT", 
-                "my_EXDOSU", 
-                "my_EXROUTE", 
+                "my_EXTPT",
+                "my_EXTRT",
+                "my_EXDOSU",
+                "my_EXROUTE",
                 "my_EXDOSFRQ")
     df <- data.frame(usubjid    = letters[1:10],
                      exstdtc    = 1:10,
@@ -340,17 +340,17 @@ test_ex_cols <- c("my_USUBJID",
 })
 
 test_that("Checking that all numeric columns are numeric.", {
-    test_ex_cols <- c("USUBJID", 
-                "DTIM", 
+    test_ex_cols <- c("USUBJID",
+                "DTIM",
                 "NDAY",
-                "TPT", 
-                "AMT", 
-                "STUDY", 
+                "TPT",
+                "AMT",
+                "STUDY",
                 "VISIT",
-                "TPTC", 
-                "DVID", 
-                "DVIDU", 
-                "ROUTE", 
+                "TPTC",
+                "DVID",
+                "DVIDU",
+                "ROUTE",
                 "FRQ")
     df <- data.frame(usubjid    = letters[1:10],
                      dtim       = 1:10,
@@ -377,17 +377,17 @@ test_that("Checking that all numeric columns are numeric.", {
 })
 
 test_that("checking for missing rows.", {
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "CMT")
     df <- data.frame(usubjid    = letters[1:10],
@@ -419,17 +419,17 @@ test_that("checking for missing rows.", {
 })
 
 test_that("Check for STUDY are character types", {
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "CMT")
     df <- data.frame(usubjid    = letters[1:10],
@@ -452,17 +452,17 @@ test_that("Check for STUDY are character types", {
 })
 
 test_that("DTIM in ISO 8601 Format", {
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "CMT")
     df <- data.frame(usubjid    = letters[1:10],
@@ -484,17 +484,17 @@ test_that("DTIM in ISO 8601 Format", {
 })
 
 test_that("If ADDL exists so must II", {
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "ADDL",
                         "CMT")
@@ -523,17 +523,17 @@ test_that("If ADDL exists so must II", {
 })
 
 test_that("Testing NDAY with 0, II documented while ADDL is NA, and ADDL documented and II NA", {
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "ADDL",
                         "II",
@@ -565,17 +565,17 @@ test_that("Testing NDAY with 0, II documented while ADDL is NA, and ADDL documen
 
 test_that("Testing NDAY with invalid values.", {
     invalid_day <- c(-5, 0, 5, 1, 3, 5, 6, 9, -10, -4)
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "ADDL",
                         "II",
@@ -611,17 +611,17 @@ test_that("Required PD Columns", {
                     "2022-02-14T20:00:00Z",
                     "2021-12-31T23:59:59Z",
                     "2025-06-30T13:00:00Z")
-    test_ex_cols <- c(  "USUBJID", 
-                        "DTIM", 
+    test_ex_cols <- c(  "USUBJID",
+                        "DTIM",
                         "NDAY",
-                        "TPT", 
-                        "AMT", 
-                        "STUDY", 
+                        "TPT",
+                        "AMT",
+                        "STUDY",
                         "VISIT",
-                        "TPTC", 
-                        "DVID", 
-                        "DVIDU", 
-                        "ROUTE", 
+                        "TPTC",
+                        "DVID",
+                        "DVIDU",
+                        "ROUTE",
                         "FRQ",
                         "ADDL",
                         "II",
@@ -784,11 +784,11 @@ test_that("PD, NDAY in pd has 0 measurement.", {
                         dvidu       = letters[1:10])
     names(pd) <- pd_test_columns
     pd$NDAY[3] <- 0
-    expect_error(pk_build(test_ex, test_pc, pd), "NDAY in pd has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.") 
+    expect_error(pk_build(test_ex, test_pc, pd), "NDAY in pd has a 0 measurement. Please confirm day of first dose is nominal day 1 and the day prior to first dose is nominal day -1.")
 })
 
-test_that("sl.cov Tests", { 
-    # Need this for debugging.  
+test_that("sl.cov Tests", {
+    # Need this for debugging.
     # source("R//PK_ASSEMBLY.R")
     dm <- tibble(
         USUBJID = letters[1:10],
@@ -850,7 +850,7 @@ test_that("Test tv.cov (Time Varying Covariates)", {
     ALT = 33
     )
     tv_cov_df <- rbind(tv_cov_df, new_row)
-    # This will generate a warning, but this intendend. 
+    # This will generate a warning, but this intendend.
     suppressWarnings({
         expect_error(pk_build(test_ex, test_pc, tv.cov = tv_cov_df), "All numerical covariates need units.")
     })
@@ -871,7 +871,7 @@ test_that("Testing Time Units.", {
 
 test_that("Rounding QC", {
     # Note: For some reason, when I put the error comment, it would not let me check it.
-    # It always came up as an error. 
+    # It always came up as an error.
     # Need this for debugging.
     # source("R//PK_ASSEMBLY.R")
     # pk_build(ex = test_ex, pc = test_pc, time.rnd = 0.25)
@@ -892,11 +892,11 @@ test_that("BDV/DDV/PDV QC", {
 test_that("Other Argument QC", {
     # Need this for debugging.
     # source("R//PK_ASSEMBLY.R")
-    expect_error(pk_build(ex = test_ex, pc = test_pc, tv.cov.fill = "ok"), 
+    expect_error(pk_build(ex = test_ex, pc = test_pc, tv.cov.fill = "ok"),
                  "tv.cov.fill parameter must be a tidy direction \\(down, up, downup, updown\\).")
-    expect_error(pk_build(ex = test_ex, pc = test_pc, sparse = T), 
+    expect_error(pk_build(ex = test_ex, pc = test_pc, sparse = T),
         "sparse parameter must be numeric to set the threshold for sparse flag.")
-    expect_error(pk_build(ex = test_ex, pc = test_pc, sparse = -1), 
+    expect_error(pk_build(ex = test_ex, pc = test_pc, sparse = -1),
         "sparse parameter must be greater than 0.")
     expect_error(pk_build(ex = test_ex, pc = test_pc, cycle.length = "test"),
         "cycle.length parameter must be numeric or NA.")
@@ -959,7 +959,7 @@ test_that("Actual + Nominal Time Calculations with NDOSE and LDOSE", {
     expect_equal(df$NTFD[5], 3)
     expect_equal(df$NTLD[5], 0)
     expect_equal(df$NTLD[8], 0)
-    
+
 })
 
 test_that("Imput Method 1", {
@@ -1010,7 +1010,7 @@ test_that("Imput Method 2", {
     val <- rep(c(-0.01, 0, 0), 10)
     expect_equal(val, dfpk$ATFD)
 
-    test_ex$DTIM = NA 
+    test_ex$DTIM = NA
     # Checking to see if correct events are triggered when DTIM is gone.
     expect_warning(dfpk_na_dtim <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 2))
     dose_validation <- rep(c(1, 1 ,NA), 10)
@@ -1075,23 +1075,23 @@ test_that("PD Processing", {
 
 test_that("Pre-Processing Covariates", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                         sl.cov = test_sl_cov_list, demo.map = F)
     # With all of females and demographic map off there should be all 1s,
-    # and an NA from combining the time-varying covariets. 
+    # and an NA from combining the time-varying covariets.
     expect_equal(pkdf$NSEX, rep(c(1,1,NA), 10))
     # Since demographic map is off, we need to map based on what the function says.
     # In this case, we will match the columns to what they are supposed to be.
     expect_equal(pkdf$NRACE, c(2,2,NA,3,3,NA,1,1,NA,1,1,NA,3,3,NA,2,2,NA,2,2,NA,3,3,NA,1,1,NA,3,3,NA))
 
     # Now we will test them with demo.map to True.
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                         sl.cov = test_sl_cov_list, demo.map = T)
     expect_equal(pkdf$NSEX, rep(c(1,1,NA), 10))
     expect_equal(pkdf$NRACE, c(3,3,NA,1,1,NA,4,4,NA,4,4,NA,1,1,NA,3,3,NA,3,3,NA,1,1,NA,4,4,NA,1,1,NA))
     expect_equal(pkdf$NETHNIC,c(0,0,NA, 0,0,NA,0,0,NA,1,1,NA,0,0,NA,0,0,NA,0,0,NA,0,0,NA,0,0,NA,1,1,NA))
 
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                         sl.cov = test_sl_cov_list, demo.map = F)
     # There is no SEX, RACE, or any other catagotical covariets that would be appended a T
     # with this toy dataset. Thus, the only thing for time-varying covariets will be
@@ -1103,7 +1103,7 @@ test_that("Pre-Processing Covariates", {
 
 test_that("Join Subject-Level Covariates", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                         sl.cov = test_sl_cov_list, demo.map = T)
     # Checking to see if the two dataframes, sl.cov and df combine.
     expect_equal(names(pkdf[27]), "NSEX")
@@ -1112,17 +1112,17 @@ test_that("Join Subject-Level Covariates", {
 test_that("Join Time-Varying Covariates", {
 
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                         sl.cov = test_sl_cov_list, demo.map = T)
     evid_is_2_pkdf <- pkdf %>% filter(EVID == 2)
     expect_equal(evid_is_2_pkdf$ATFD, c(9523.60,  9566.74,  9661.08, 10097.35,  9912.95, 10410.18, 10410.17, 10627.07, 10764.70, 10785.87))
-    
+
 })
 
 test_that("NODV_F", {
     # source("R//PK_ASSEMBLY.R")
     # source("R/pk_build.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
     pattern_vector <- c(1:10)
     count <- 1
@@ -1135,25 +1135,25 @@ test_that("NODV_F", {
 
 test_that("DUPF", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
-    # This column will be all 0s because of the the grouping of 
+    # This column will be all 0s because of the the grouping of
     # USUBJID, ATFD, EVID, CMT will not be unique.
     expect_equal(pkdf$DUPF, rep(c(0), 30))
 })
 
 test_that("AMTF", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
-    # This will return all 0s because all the of AMT column is present, 
+    # This will return all 0s because all the of AMT column is present,
     # and if not present, its EVID is not 1.
     expect_equal(pkdf$AMTF, rep(0, 30))
 })
 
 test_that("NOEXF", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
     # All values in this column will be 0 because there is at least 1 EVID in this
     # present in this data.
@@ -1162,7 +1162,7 @@ test_that("NOEXF", {
 
 test_that("SPARSEF", {
     # source("R//PK_ASSEMBLY.R")
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
     # First two will be one because they point to the row number that have EVID == 0,
     # and have the minimum compartment.
@@ -1171,7 +1171,7 @@ test_that("SPARSEF", {
     expect_equal(pkdf$CMT, pattern)
 
     # Making same test, but instead of PD we are going to use PC.
-    pkdf <- pk_build(ex = test_ex, pc = test_pc, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pc = test_pc, time.rnd = 2, tv.cov = test_tv.cov,
                 sl.cov = test_sl_cov_list, demo.map = T)
     pattern <- rep(c(0, 1, NA), 10)
     pattern[c(FALSE, TRUE, FALSE)] <- 1:10
@@ -1181,7 +1181,7 @@ test_that("SPARSEF", {
 test_that("PDOSEF, TIMEF, PLBOF", {
     # source("R//PK_ASSEMBLY.R")
 
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
 
     v <- rep(0, 30)
@@ -1189,7 +1189,7 @@ test_that("PDOSEF, TIMEF, PLBOF", {
     expect_equal(pkdf$PDOSEF, v)
     # Same reason as above.
     expect_equal(pkdf$TIMEF, v)
-    # Fits the pattern 0, 0, NA because DOSE == 0 is not applicable for when 
+    # Fits the pattern 0, 0, NA because DOSE == 0 is not applicable for when
     # the value is NA.
     expect_equal(pkdf$PLBOF, rep(c(0, 0, NA), 10))
     # ALL NA because there is no 1s present in any of these columns.
@@ -1199,7 +1199,7 @@ test_that("PDOSEF, TIMEF, PLBOF", {
 test_that("SFF and TREXF", {
     # source("R//PK_ASSEMBLY.R")
 
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
     expect_equal(pkdf$SDF, rep(0, 30))
     expect_equal(pkdf$TREXF, rep(0, 30))
@@ -1208,7 +1208,7 @@ test_that("SFF and TREXF", {
 test_that("FIX NA Items", {
     # source("R//PK_ASSEMBLY.R")
 
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
     # All of the following will remain unchanged because each NA value
     # appears when the record contains EVID = 2.
@@ -1225,14 +1225,14 @@ test_that("Rounding", {
 
     # source("R//PK_ASSEMBLY.R")
 
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                     sl.cov = test_sl_cov_list, demo.map = T)
     # ATFD rounding (time.rnd = 2)
     expect_equal(pkdf$ATFD[2], 2081.65)
-    
+
     # AMT rounding (amt.rnd = NA)
     expect_equal(pkdf$AMT[1], 1)
-    
+
     # ODV rounding (dv.rnd = NA)
     expect_equal(pkdf$ODV[2], 1)
 
@@ -1241,17 +1241,17 @@ test_that("Rounding", {
     expect_equal(pkdf$LDV[8], 1.0986123)
 
     # LDV rounding (dv.rnd = 2)
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                 sl.cov = test_sl_cov_list, demo.map = T, dv.rnd = 2)
 
     expect_equal(pkdf$LDV[5], 0.69)
 
     # BWEIGHT, TAST, TALT with cov.rnd = NA
     expect_equal(pkdf$BWEIGHT[7], 63.7)
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
                 sl.cov = test_sl_cov_list, demo.map = T, dv.rnd = 2)
     # cov.rnd = 2
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
+    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov,
             sl.cov = test_sl_cov_list, demo.map = T, dv.rnd = 2, cov.rnd = 2)
     expect_equal(pkdf$BWEIGHT[7], 63.70)
     expect_equal(pkdf$BWEIGHT[10], 45.70)
@@ -1259,15 +1259,6 @@ test_that("Rounding", {
     expect_equal(pkdf$TALT[7], 20.00)
 })
 
-test_that("Final Sorting Arrangement", {
-    # source("R//PK_ASSEMBLY.R")
-    # source("R/pk_build.R")
-    local_edition(3)
-    pkdf <- pk_build(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, 
-                    sl.cov = test_sl_cov_list, demo.map = T)
-    pkdf <- dplyr::select(pkdf, -VERSN, -BUILD)
-    expect_snapshot(print(pkdf,n = Inf, width = Inf), variant = "final-sorting-arrangment")
-})
 
 # Creating special datasets to trigger warnings.
 
@@ -1287,13 +1278,13 @@ test_that("Warnings", {
         DVIDU = c("mg/dL", "mg/dL", "kg", "mmHg", "kg", "mg/dL"),
         ROUTE = rep("oral", 6),
         FRQ = rep("QD", 6)
-    ) 
+    )
     warnings_pc <- data.frame(
         USUBJID = c("A", "A", "B", "B", "C", "C"),
         DTIM = ex_iso_dates[1:6],
         NDAY = c(1, 2, 3, 2, 5, 4),
         DOMAIN = rep("PC", 6),
-        TPT = rep(1, 6), 
+        TPT = rep(1, 6),
         ODV = rep(1, 6),
         LLOQ = rep(0.05, 6),
         CMT = c(6,0,5,1,2,3),
@@ -1305,7 +1296,7 @@ test_that("Warnings", {
     suppressWarnings({
         pkdf <- pk_build(warnings_ex, pc = warnings_pc, time.units = "days")
     })
-    expect_warning(pk_build(warnings_ex, pc = warnings_pc, time.units = "days"), 
+    expect_warning(pk_build(warnings_ex, pc = warnings_pc, time.units = "days"),
     "The following USUBJID\\(s\\) have at least one event that occurred out of protocol order \\(NTFD is not strictly increasing\\): B")
 
     # Changing NDAY to a negative value to trigger another warning.
@@ -1339,11 +1330,4 @@ test_that("Warning messages for covariates", {
     warning_messages <- purrr::quietly(pk_build)(ex = test_ex, pd = test_pd, time.rnd = 2, tv.cov = test_tv.cov, sl.cov = test_sl_cov_list, demo.map = T, na = -999)
     expect_equal(warning_messages$warnings[3], "NSEX and TSEX are not equivalent at first dose (baseline).")
     expect_equal(warning_messages$warnings[6], "BWEIGHT and TWEIGHT are not equivalent at first dose (baseline).")
-})
-       
-test_that("Snapshots", {
-    local_edition(3)
-    pkdf <- pk_build(ex = test_ex, pc = test_pc, tv.cov = test_tv.cov, time.rnd = 2, impute = 2)
-    pkdf <- pkdf %>% select(-BUILD)
-    expect_snapshot(print(pkdf, n = Inf, width = Inf), variant = "correct_snapshot")
 })

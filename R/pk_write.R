@@ -5,7 +5,7 @@
 #' @param df PK(PD) dataframe
 #' @param file filepath
 #'
-#' @return NA
+#' @return writes dataset to specified location
 #'
 #' @examplesIf exists("df_path")
 #' ## Simple ex domain with 1 subject and 1 dose

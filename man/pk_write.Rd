@@ -12,7 +12,7 @@ pk_write(df, file)
 \item{file}{filepath}
 }
 \value{
-NA
+writes dataset to specified location
 }
 \description{
 Dataset created by pk_build() or pk_combine() will be outputted as a .csv file with NONMEM-standard formatting.

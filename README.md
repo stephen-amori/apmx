@@ -8,7 +8,13 @@ This repository contains several R functions to support the assembly of PK(PD) d
 ## Instructions for Use
 
 ### Download the Repository onto your Computer
-The package can be downloaded with these commands:  
+The latest CRAN release can be installed with the following commands:  
+```
+install.packages("apmx")
+library(apmx)
+```
+
+The current development package can be downloaded from GitHub with the following commands:  
 ```
 devtools::install_github("stephen-amori/apmx")
 library(apmx)

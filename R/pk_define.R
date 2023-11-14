@@ -12,7 +12,7 @@
 #' @param size font size for table contents
 #' @param na value used for missing or na numeric covariates
 #'
-#' @return NA
+#' @return writes definition file (.docx) to dataset location
 #'
 #' @examplesIf exists("df_path") & exists("vl_path")
 #' ## Simple ex domain with 1 subject and 1 dose

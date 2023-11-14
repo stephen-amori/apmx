@@ -39,7 +39,7 @@ version_log(
 \item{orient}{document orientation}
 }
 \value{
-version log as a docx file
+version log as a .docx file
 }
 \description{
 Version log is outputted as a .docx file.

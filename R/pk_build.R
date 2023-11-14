@@ -84,7 +84,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   NTLC <- RATE <- LDV <- C <- SUBJID <- ID <- MDV <- LLOQ <- LINE <- NULL
   VISIT <- TPTC <- DOMAIN <- DVIDU <- VERSN <- BUILD <- DNTFD <- TIMEF <- NULL
   dvids <- NULL
-  func.version <- "0.3.5"
+  func.version <- "1.0.0"
 
   ###EX QC###
   cdisc.cols.ex <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",

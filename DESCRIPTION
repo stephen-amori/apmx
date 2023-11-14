@@ -1,8 +1,8 @@
 Package: apmx
 Type: Package
-Title: Automated Approach to PK and PKPD Dataset Assembly
-Version: 0.3.6
-Date: 2023-07-14
+Title: Automated Population Pharmacokinetic Dataset Assembly
+Version: 1.0.0
+Date: 2023-11-14
 Authors@R: c(
     person("Stephen", "Amori", email="stephen.amori@amadorbio.com", role = c("aut", "cre", "cph")),
     person("Ethan", "DellaMaestra", email="ethan.dellamaestra@amadorbio.com", role = c("aut")),
@@ -11,9 +11,12 @@ Authors@R: c(
     person("Jonah", "Lyon", role = c("ctb"))
   )
 Maintainer: Stephen Amori <stephen.amori@amadorbio.com>
-Description: Automated methods to assemble PK and PKPD datasets for analysis in NONMEM.
-    The package includes functions to build datasets from SDTM, ADaM, or other dataset formats,
-    combine population datasets, add covariates, and create documentation to support regulatory submission.
+Description: Automated methods to assemble population PK (pharmacokinetic) and
+    PKPD (pharmacodynamic) datasets for analysis in 'NONMEM' (non-linear mixed effects
+    modeling). The package includes functions to build datasets from SDTM (study data
+    tabulation module), ADaM (analysis dataset module), or other dataset formats. The
+    package will combine population datasets, add covariates, and create documentation
+    to support regulatory submission and internal communication.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

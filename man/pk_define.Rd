@@ -30,7 +30,7 @@ pk_define(
 \item{na}{value used for missing or na numeric covariates}
 }
 \value{
-NA
+writes definition file (.docx) to dataset location
 }
 \description{
 Definition file table can be read into a template word document (.docx) or blank document if desired.

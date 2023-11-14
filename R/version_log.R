@@ -15,7 +15,7 @@
 #' @param size font size
 #' @param orient document orientation
 #'
-#' @return version log as a docx file
+#' @return version log as a .docx file
 #'
 #' @examplesIf exists("df_path")
 #' ## Simple ex domain with 1 subject and 1 dose
