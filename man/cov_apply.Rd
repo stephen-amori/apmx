@@ -10,12 +10,12 @@ cov_apply(
   id.by = "USUBJID",
   time.by = NA,
   direction = "downup",
-  exp = F,
-  ebe = F,
+  exp = FALSE,
+  ebe = FALSE,
   cov.rnd = NA,
   na = -999,
-  demo.map = T,
-  keep.other = T
+  demo.map = TRUE,
+  keep.other = TRUE
 )
 }
 \arguments{

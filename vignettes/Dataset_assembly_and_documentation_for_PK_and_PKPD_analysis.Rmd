@@ -369,12 +369,12 @@ df_full <- apmx::pk_build(ex = ex, pc = pc, pd = pd,
                           tv.cov = list(tast, talt),
                           time.rnd = 3,
                           cov.rnd = NULL, #rounds observation columns to x decimal places
-                          BDV = F, #calculates baseline dependent variable for PD events
-                          DDV = F, #calculates change (delta) from baseline for PD events
-                          PDV = F, #calculates percent change from baseline for PD events
-                          demo.map = T, #adds specific numeric mapping for SEX, RACE, and ETHNIC variables
+                          BDV = FALSE, #calculates baseline dependent variable for PD events
+                          DDV = FALSE, #calculates change (delta) from baseline for PD events
+                          PDV = FALSE, #calculates percent change from baseline for PD events
+                          demo.map = TRUE, #adds specific numeric mapping for SEX, RACE, and ETHNIC variables
                           tv.cov.fill = "downup", #fill pattern for time-varying covariates
-                          keep.other = T) #keep or drop all EVID = 2 rows
+                          keep.other = TRUE) #keep or drop all EVID = 2 rows
 ```
 
 The dataset is a bit easier to read if we drop the other events. We will do that moving forward for the rest of the tutorial.  
@@ -384,8 +384,8 @@ df_full <- apmx::pk_build(ex = ex, pc = pc, pd = pd,
                           sl.cov = list(dm, lb),
                           tv.cov = list(tast, talt),
                           time.rnd = 3, dv.rnd = 3,
-                          BDV = T, DDV = T, PDV = T,
-                          keep.other = F)
+                          BDV = TRUE, DDV = TRUE, PDV = TRUE,
+                          keep.other = FALSE)
 ```
 
 ## Other covariate methods
@@ -419,8 +419,8 @@ tast <- LB %>%
 df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
                                sl.cov = list(dm, lb),
                                time.rnd = 3, dv.rnd = 3,
-                               BDV = T, DDV = T, PDV = T,
-                               keep.other = F) %>%
+                               BDV = TRUE, DDV = TRUE, PDV = TRUE,
+                               keep.other = FALSE) %>%
   apmx::cov_apply(tast, time.by = "NTFD")
 ```
 
@@ -429,8 +429,8 @@ df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
 ```{r}
 df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
                                time.rnd = 3, dv.rnd = 3,
-                               BDV = T, DDV = T, PDV = T,
-                               keep.other = F) %>%
+                               BDV = TRUE, DDV = TRUE, PDV = TRUE,
+                               keep.other = FALSE) %>%
   apmx::cov_apply(dm) %>%
   apmx::cov_apply(lb) %>%
   apmx::cov_apply(talt, time.by = "DTIM") %>%
@@ -460,14 +460,14 @@ parameters <- data.frame(ID = 1:22, #individual clearance and central volume est
 ``` {r}
 df_cov_apply <- apmx::pk_build(ex = ex, pc = pc,
                                time.rnd = 3, dv.rnd = 3,
-                               BDV = T, DDV = T, PDV = T,
-                               keep.other = F) %>%
+                               BDV = TRUE, DDV = TRUE, PDV = TRUE,
+                               keep.other = FALSE) %>%
   apmx::cov_apply(dm) %>%
   apmx::cov_apply(lb) %>%
-  apmx::cov_apply(talt, time.by = "DTIM", keep.other = F) %>%
-  apmx::cov_apply(tast, time.by = "NTFD", keep.other = F) %>%
-  apmx::cov_apply(exposure, id.by = "ID", exp = T) %>%
-  apmx::cov_apply(parameters, id.by = "ID", ebe = T)
+  apmx::cov_apply(talt, time.by = "DTIM", keep.other = FALSE) %>%
+  apmx::cov_apply(tast, time.by = "NTFD", keep.other = FALSE) %>%
+  apmx::cov_apply(exposure, id.by = "ID", exp = TRUE) %>%
+  apmx::cov_apply(parameters, id.by = "ID", ebe = TRUE)
 ```
 
 It is recommended you always use `pk_build()` or `cov_apply()` to add covariates instead of adding them in yourself. That ensures `cov_find()` always finds the covariates correctly.
@@ -612,7 +612,7 @@ apmx::pk_build(ex, pc, time.units="minutes")
 What if you program `DDV` and/or `PDV` without calculating `BDV`?  
 
 ```{r}
-apmx::pk_build(ex, pc, pd, DDV=T, PDV==T)
+apmx::pk_build(ex, pc, pd, DDV=TRUE, PDV==TRUE)
 ```
 
 What if you pass the same covariate through multiple dataframes?  
@@ -656,7 +656,7 @@ What if a subject does not have any baseline PD events and `BDV|DDV|PDV == TRUE`
 pd_warning <- pd
 pd_warning <- pd[3:nrow(pd_warning), ]
 
-df_warning <- apmx::pk_build(ex, pc, pd_warning, BDV=T)
+df_warning <- apmx::pk_build(ex, pc, pd_warning, BDV=TRUE)
 ```
 
 ```{r}
@@ -893,36 +893,42 @@ If you forgot to add pd events for study 2, this warning will remind you. For th
 Once we are done creating our dataset, we can read it out with the function `apmx::pk_write()`. This ensures the dataset is read out in a NONMEM-usable format.  
 
 ```{r}
-out.dir <- paste0(getwd(), "/PK_ABC101_V01.csv")
-apmx::pk_write(df_combine, out.dir)
+name <- "PK_ABC101_V01.csv"
+apmx::pk_write(df_combine, file.path(tempdir(), name))
 ```
 
 ## Dataset documentation
 
 Documenting a dataset is important when working with a team and when sharing work with outside organizations or regulatory agencies. For example, the FDA requires all population pharmacometric analysis datasets be accompanied with a definition file. `apmx` provides tools to help you document your dataset.  
 
-We will start by exploring the definition file feature. The definition file sources variable names from a local list stored on your computer. You can download a simple version with `apmx::variable_list_export()`. Let's start by downloading the list.
+We will start by exploring the definition file feature. The definition file sources variable names from a dataframe of definitions created with `apmx::variable_list_create()`. It comes pre-filled with definitions for standard apmx variables, and gives you the ability to add your own for covariates and other custom variables. NOTE you do not have to add prefixes and suffixes to this list, just the root term of each covariate (`SEX` instead of `NSEX` and `NSEXC`).  
 
 ```{r}
-vl.dir <- paste0(getwd(), "/vl.csv")
-apmx::variable_list_export(vl.dir)
+vl <- apmx::variable_list_create(variable = c("SEX", "RACE", "ETHNIC", "AGE",
+                                              "ALB", "ALT", "AST", "BILI", "CREAT"),
+                           categorization = rep("Covariate", 9),
+                           description = c("sex", "race", "ethnicity", "age",
+                                           "albumin", "alanine aminotransferase",
+                                           "aspartate aminotransferase",
+                                           "total bilirubin", "serum creatinine"))
 ```
-
-Open up the variable list and take a look at the information inside. You can customize the descriptions of these variables if you like. You should add definitions for the custom covariates in this project. When you add covariates, do not add the prefix and suffix, just add the root term. For example, you do not need to define `NSEX` and `NSEXC`, just `SEX`.  
-
-Save and close the variable list before continuing.  
-
-An optional component of the definition file is the template (.docx file). It provides a customized look to the definition file.  
 
 Now, let's create the definition file.  
 
 ```{r}
-apmx::pk_define(file = out.dir,
-                project = "ABC999 tutorial",
-                variable.list = vl.dir)
+define <- apmx::pk_define(df = df_combine,
+                          variable.list=vl)
 ```
 
-The file automatically reads out to the same directory as the dataset. Take a look at the definition file and familiarize yourself with the layout. Notice if you forgot to add your custom covariates to the variable list, the covariate is retained in the file but the definition is NA. This document makes it easy to communicate to others what variables are in your dataset.  
+You can export the definition file to a word document using the `file` argument. The `project` and `data` parameters can be used to add a custom project name and dataset name to the header of the document. To use this feature, you must use a Word document template with the words "Project" and "Dataset" in the header. You can provide the template of the Word document with the `template` parameter.  
+
+```{r}
+define <- apmx::pk_define(df = df_combine,
+                          file = file.path(tempdir(), "definition_file.docx"),
+                          variable.list=vl,
+                          project = "Sponsor Name",
+                          data = "Dataset Name")
+```
 
 Next, let's create a version log. Version logs are important when we have multiple datasets over a project duration. Datasets can be updated for all sorts of reasons:  
 
@@ -930,35 +936,16 @@ Next, let's create a version log. Version logs are important when we have multip
 * Additional studies, subjects or events added
 * Errors are corrected  
 
-Similar to the definition function, we can provide a template for formatting. You can also provide a comment to describe the source data. You also have to specify how to group the dataset to compare against the reference dataset. For PK(PD) datasets, you should group by `USUBJID`, `ATFD`, `EVID`, and `DVID`.  
+Similar to the definition function, we can provide a template for formatting. You can also provide a comment to describe the source data. The version log is easiest to use when you read it out as a word document using the `file` parameter. 
 
 ```{r}
-apmx::version_log(file = out.dir,
-                  orig = T,
-                  comp_var = c("USUBJID", "ATFD", "EVID", "DVID"),
-                  src_data = "test data")
+vrlg <- apmx::version_log(df = df_combine,
+                          name = name,
+                          file = file.path(tempdir(), "version_log.docx"),
+                          src_data = "original test data")
 ```
 
-Open the version log document and take a look around. Notice that there is a column called "Comments". You can add a comment there in the word document, and the function will not overwrite it.  
-
-What if we update the dataset and create a new version? Let's add an additional covariate and change another one.  
-
-``` {r}
-df_combine2 <- df_combine %>%
-  dplyr::group_by(ID) %>%
-  dplyr::mutate(BCREAT = round(rnorm(1, 0.85, 0.2), 3), #change BCREAT
-                BTUM = rnorm(1, 100, 30)) %>% #add BTUM (baseline tumor size)
-  dplyr::ungroup()
-
-out.dir <- paste0(getwd(), "/PK_ABC101_V02.csv")
-apmx::pk_write(df_combine2, out.dir)
-
-apmx::version_log(file = out.dir,
-                  comp_var = c("USUBJID", "ATFD", "EVID", "DVID"),
-                  src_data = "new test data")
-```
-
-Now we can communicate to others what is contained in each dataset and why they are changing over the course of the project.  
+Open the version log document and take a look around. Notice that there is a column called "Comments". You can add a comment there in the Word document, and the function will not overwrite it. When you produce a new dataset, call `apmx::version_log()` again with the new dataset, the most recent dataset, the new dataset name, and the same filepath as the previous log. You will need to use `comp_var` to group the rows for comparison. For PKPD datasets, we recommend grouping by `USUBJID`, `ATFD`, `EVID`, and `DVID`. This function will update the version log by adding a new row to the Word document.  
 
 Lastly, `apmx` can help you produce summary tables of your datasets. `apmx::pk_summarize()` produces three types of summary tables:  
 
@@ -969,20 +956,20 @@ Lastly, `apmx` can help you produce summary tables of your datasets. `apmx::pk_s
 Tables can be stratified by any other categorical covariate in the dataset.  
 
 ```{r}
-apmx::pk_summarize(out.dir)
+sum1 <- apmx::pk_summarize(df = df_combine)
 ```
 
 The summary function has other parameters to help you document the dataset:  
 
 * `strat.by` will stratify the dataset by any variable.
-* `ignore.C` will remove all C-flagged records from the analysi.
+* `ignore.C` will remove all C-flagged records from the analysis.
 * This parameter is on by default.
 * `docx` will produce word document versions of the summary tables
 * `pptx` will produce powerpoint slides of the summary tables. NOTE: pptx feature is still under development  
+* `ignore.request` will filter out an expression passed through this parameter.
 
 ```{r}
-apmx::pk_summarize(file = out.dir,
-                   strat.by = c("NSTUDYC", "NSEXC"),
-                   docx = T,
-                   ignore.request = "NRACE == 2")
+sum2 <- apmx::pk_summarize(df = df_combine,
+                           strat.by = c("NSTUDYC", "NSEXC"),
+                           ignore.request = "NRACE == 2")
 ```

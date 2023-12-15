@@ -4,7 +4,7 @@
 \alias{pk_combine}
 \title{combine study level datasets to form population dataset}
 \usage{
-pk_combine(df1, df2, demo.map = T, na = -999)
+pk_combine(df1, df2, demo.map = TRUE, na = -999)
 }
 \arguments{
 \item{df1}{original PK(PD) dataset}

@@ -7,7 +7,7 @@
 #'
 #' @return writes dataset to specified location
 #'
-#' @examplesIf exists("df_path")
+#' @examples
 #' ## Simple ex domain with 1 subject and 1 dose
 #' ex <- data.frame(STUDYID = "ABC101",
 #'                  USUBJID = "ABC101-001",
@@ -48,10 +48,8 @@
 #' df <- pk_build(ex, pc)
 #'
 #' ## Write with pk_write()
-#' df_path ##User designated filepath "C:/.../dataset.csv"
-#' if(file.exists(df_path)) {
-#'   pk_write(df, df_path)
-#' }
+#' name <- "dataset.csv"
+#' pk_write(df, file.path(tempdir(), name))
 #'
 #' @export
 pk_write <- function(df, file) {
@@ -69,5 +67,5 @@ pk_write <- function(df, file) {
   }
 
   ###WRITE DATASET TO SERVER###
-  utils::write.csv(df, file, na=".", quote=F, row.names = F)
+  utils::write.csv(df, file, na=".", quote=FALSE, row.names = FALSE)
 }

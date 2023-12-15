@@ -5,9 +5,9 @@
 \title{Create and maintain a dataset version log}
 \usage{
 version_log(
-  file,
-  orig = F,
-  outdir = NULL,
+  df,
+  name,
+  file = NULL,
   prevdata = NULL,
   template = NULL,
   comp_var,
@@ -18,11 +18,11 @@ version_log(
 )
 }
 \arguments{
-\item{file}{filepath of new dataset}
+\item{df}{filepath of new dataset}
 
-\item{orig}{original dataset flag}
+\item{name}{name of the dataset (filename with .csv suffix)}
 
-\item{outdir}{output directory, defaults to dataset directory}
+\item{file}{filepath for version log file (.docx)}
 
 \item{prevdata}{comparison dataset filepath}
 
@@ -47,7 +47,6 @@ Document tracks changes in subject count, record count, new variables, and chang
 User comments in the word document are preserved between versions.
 }
 \examples{
-\dontshow{if (exists("df_path")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 ## Simple ex domain with 1 subject and 1 dose
 ex <- data.frame(STUDYID = "ABC101",
                  USUBJID = "ABC101-001",
@@ -87,15 +86,7 @@ pc <- data.frame(USUBJID = "ABC101-001",
 ## Create with pk_build()
 df <- pk_build(ex, pc)
 
-## Write with pk_write()
-df_path ##User designated filepath "C:/.../dataset.csv"
-if (file.exists(df_path)) {
-  pk_write(df, df_path)
-}
-
 ## Document with version_log()
-if (file.exists(df_path)) {
-  version_log(df_path, orig = T, comp_var = c("USUBJID", "ATFD", "CMT"))
-}
-\dontshow{\}) # examplesIf}
+vlog <- version_log(df, name = "PK_DATA_V01.csv")
+
 }

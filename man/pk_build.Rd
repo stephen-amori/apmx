@@ -18,13 +18,13 @@ pk_build(
   dv.rnd = NULL,
   cov.rnd = NULL,
   impute = NA,
-  BDV = F,
-  DDV = F,
-  PDV = F,
+  BDV = FALSE,
+  DDV = FALSE,
+  PDV = FALSE,
   sparse = 3,
-  demo.map = T,
+  demo.map = TRUE,
   tv.cov.fill = "downup",
-  keep.other = T
+  keep.other = TRUE
 )
 }
 \arguments{

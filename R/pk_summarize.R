@@ -4,10 +4,11 @@
 #' Outputs are default .csv files, but can also be .docx and/or .pptx
 #' Tables are default stratified by study, but can be stratified by any variable requested by the user.
 #'
-#' @param file filepath PK(PD) dataset produced by pk_build().
+#' @param df dataset produced by pk_build().
+#' @param dir filepath for output directory.
 #' @param strat.by vector of variables names to stratify the summary tables.
 #' @param ignore.c ignores records flagged in the C column when TRUE.
-#' @param na numeric value interpreted by -999.
+#' @param na numeric value to be interpreted as NA or missing.
 #' @param docx creates summary tables as a Word document when TRUE.
 #' @param pptx creates summary tables as a PowerPoint document when TRUE.
 #' @param docx.font font for the summary tables in the Word document.
@@ -17,12 +18,11 @@
 #' @param pptx.font font for the summary tables in the PowerPoint document.
 #' @param pptx.size font size for the summary tables in the PowerPoint document.
 #' @param docx.orientation orientation of .docx files.
-#' @param dir filepath for output directory. When NA, all files output to the same directory as the file parameter.
 #' @param ignore.request vector of additional logical expressions to filter the datase prior to summary.
 #'
 #' @return summary tables as .csv, .docx, and .pptx files
 #'
-#' @examplesIf exists("df_file")
+#' @examples
 #' ## Simple ex domain with 1 subject and 1 dose
 #' ex <- data.frame(STUDYID = "ABC101",
 #'                  USUBJID = "ABC101-001",
@@ -62,44 +62,30 @@
 #' ## Create with pk_build()
 #' df <- pk_build(ex, pc)
 #'
-#' ## Write with pk_write()
-#' df_path ##User designated filepath "C:/.../dataset.csv"
-#' if (file.exists(df_path)) {
-#'   pk_write(df, df_path)
-#' }
 #'
 #' ## Generate summary statistics with pk_summarize()
-#' if (file.exists(df_path)) {
-#'   pk_summarize(df_path)
-#' }
+#' pk_summarize(df)
+#'
 #'
 #'
 #' @export
-pk_summarize <- function(file, strat.by = "NSTUDYC",
-                         ignore.c = T, na = -999,
-                         docx = F, pptx = F,
+pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
+                         ignore.c = TRUE, na = -999,
+                         docx = FALSE, pptx = FALSE,
                          docx.font="Times New Roman", docx.size=9,
                          docx.template=NULL, pptx.template=NULL,
                          pptx.font="Times New Roman", pptx.size=12,
-                         docx.orientation = "portrait", dir = NA, ignore.request = c()) {
+                         docx.orientation = "portrait", ignore.request = c()) {
 
   EVID <- Covariate <- Order <- ID <- NSTUDYC <- NULL
 
+  orig <- df
+  out <- list()
+
   ###QC###
-  #make sure filepath is valid
-  data.dir <- this.path::dirname2(file) #directory of the dataset
-  if (data.dir==".") {
-    stop(paste(file, "is not a valid filepath."))
-  }
-
-  data.name <- this.path::basename2(file) #dataset name including extension
-  if (!grepl("\\.csv$", data.name)) {
-    stop(paste("filepath must include document name and .csv suffix."))
-  }
-
   #make sure strat.by is a character or vector of characters
   if(!is.character(strat.by)) {
-    stop("strat.by must be in character form only")
+    stop("strat.by must be in character form only.")
   }
 
   #ignore.c must be logical
@@ -175,15 +161,14 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
   # are flipped to make it easier for the user to see what actions have been performed on their data.
   ignored_records <- c()
 
-  if (ignore.c == T || (length(ignore.request) != 0)) {
+  if (ignore.c == TRUE || (length(ignore.request) != 0)) {
     ignored_records <- c(ignored_records, "*Ignores records flagged by")
   }
-  if (ignore.c == T) {
+  if (ignore.c == TRUE) {
     ignored_records <- c(ignored_records, "C")
   }
   if (length(ignore.request) != 0) {
     valid_operations <- c("==", "<", "<=", ">=", ">", "!=")
-    df <- utils::read.csv(file, na=".")
     for (item in ignore.request) {
 
       # Break apart item to get colnames, operation, and value.
@@ -211,7 +196,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       }
 
       # Check if this is a valid record.
-      if (!any(condition %in% df[, column]) && (operation == "==" || operation == "!=")) {
+      if (!any(condition %in% unlist(df[, column])) && (operation == "==" || operation == "!=")) {
         stop(condition, " is not a record in the dataset.")
       }
 
@@ -251,10 +236,6 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       ignored_records <- c(ignored_records, item)
 
     }
-    # temp_dir <- getwd()
-    # temp_dir <- paste0(temp_dir, '/temp.csv')
-    # utils::write.csv(df, file = temp_dir)
-    # file <- temp_dir
   }
   # END:  MICHAEL'S ADDITIONS.
 
@@ -266,17 +247,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
   }
 
   #dir must be a filepath
-  if (is.na(dir)) {
-    dir <- this.path::dirname2(file)
+  if (!is.na(dir)) {
+    if (!dir.exists(dir)) {
+      stop(paste(dir, "is not a valid filepath."))
+    }
   }
-
-  data.dir <- this.path::dirname2(dir) #directory of the dataset
-  if (data.dir==".") {
-    stop(paste(dir, "is not a valid filepath."))
-  }
-
   if (length(ignore.request)==0) {
-    orig <- utils::read.csv(file, na.strings=".")
+    orig <- orig
   }
 
   else {
@@ -292,7 +269,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
   orig <- dplyr::mutate(orig, NSTUDYC = as.character(NSTUDYC))
 
   for (i in strat.by) {
-    if (ignore.c==T) {
+    if (ignore.c==TRUE) {
       df <- orig[is.na(orig$C),]
     }
     else {
@@ -311,7 +288,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
     df.total$Total[5] <- nrow(df[df$EVID==2,])
     df.total$Total <- as.character(df.total$Total)
 
-    for(j in sort(unique(df[, i]))) {
+    for(j in sort(unique(unlist(df[, i])))) {
       df.temp <- data.frame(Item = c("Subjects", "Total Records", "Dose Records",
                                      "Observation Records", "Other Records"),
                             "Total" = NA)
@@ -365,7 +342,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       }
     }
 
-    for (j in sort(unique(df[, i]))) {
+    for (j in sort(unique(unlist(df[, i])))) {
       df.temp <- df.blq[, 1:2]
       df.temp$Temp <- NA
 
@@ -425,9 +402,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       df.summary[j,] <- paste(df.summary[j,], "Observations")
     }
 
-    utils::write.csv(df.summary, paste0(dir, paste0("\\BLQ_by_", i, ".csv")), row.names = F, quote = F, na=".")
+    out <- c(out, list(df.summary))
 
-    if(docx==T) {
+    if(!is.na(dir)) {
+      utils::write.csv(df.summary, paste0(dir, paste0("\\BLQ_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
+    }
+
+    if(!is.na(dir) & docx==TRUE) {
       flextable::set_flextable_defaults(
         font.size = docx.size,
         font.family = docx.font)
@@ -466,7 +447,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         ignored_string <- ignored_records
       }
 
-      if (ignore.c==T || length(ignore.request) != 0) {
+      if (ignore.c==TRUE || length(ignore.request) != 0) {
         # df.summary1 <- df.summary1 %>%
         #   flextable::add_footer_lines(values = ignored_string)
         df.summary1 <- flextable::add_footer_lines(df.summary1, values = ignored_string)
@@ -484,7 +465,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       print(tmplt, target = paste0(dir, "\\BLQ_by_", i, ".docx"))
     }
 
-    if(pptx==T) {
+    if(!is.na(dir) & pptx==TRUE) {
       flextable::set_flextable_defaults(
         font.size = pptx.size,
         font.family = pptx.font)
@@ -537,7 +518,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       cov$Total[k] <- paste0(cov$Total[k], " (", round(100*as.numeric(cov$Total[k])/nsub, 1), "%)")
     }
 
-    for (j in sort(unique(df[,i]))) {
+    for (j in sort(unique(unlist(df[,i])))) {
       df.temp <- cov[, 1:3]
       df.temp$Temp <- NA
 
@@ -578,9 +559,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
     }
     cov <- cov[,-1]
 
-    utils::write.csv(cov, paste0(dir, paste0("\\CATCOV_by_", i, ".csv")), row.names = F, quote = F, na=".")
+    out <- c(out, list(cov))
 
-    if(docx==T) {
+    if(!is.na(dir)) {
+      utils::write.csv(cov, paste0(dir, paste0("\\CATCOV_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
+    }
+
+    if(!is.na(dir) & docx==TRUE) {
       flextable::set_flextable_defaults(
         font.size = docx.size,
         font.family = docx.font)
@@ -618,7 +603,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
 
       # START: Michael's additions
       # DESCRIPTION: This just addes to the footer of all of the operations on the data.
-      if (ignore.c==T || length(ignore.request) != 0) {
+      if (ignore.c==TRUE || length(ignore.request) != 0) {
         cov1 <- flextable::add_footer_lines(cov1, values = ignored_string)
       }
       # END:   Michael's additions
@@ -628,7 +613,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       print(tmplt, target = paste0(dir, "\\CATCOV_by_", i, ".docx"))
     }
 
-    if(pptx==T) {
+    if(!is.na(dir) & pptx==TRUE) {
       flextable::set_flextable_defaults(
         font.size = pptx.size,
         font.family = pptx.font)
@@ -671,13 +656,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
           cov$Total[k] <- as.character(length(unique(df.temp.1$ID)))
         }
         else if (cov$Measure[k]==2) {
-          cov$Total[k] <- paste0(round(mean(df.temp.1[,2]), 2), " (", round(stats::sd(df.temp.1[,2]), 2), ")")
+          cov$Total[k] <- paste0(round(mean(unlist(df.temp.1[,2])), 2), " (", round(stats::sd(unlist(df.temp.1[,2])), 2), ")")
         }
         else if (cov$Measure[k]==3) {
-          cov$Total[k] <- paste0(round(stats::median(df.temp.1[,2]), 2), " (", round(stats::quantile(df.temp.1[,2], probs = 0.25), 2), "; ", round(stats::quantile(df.temp.1[,2], probs = 0.75), 2), ")")
+          cov$Total[k] <- paste0(round(stats::median(unlist(df.temp.1[,2])), 2), " (", round(stats::quantile(unlist(df.temp.1[,2]), probs = 0.25), 2), "; ", round(stats::quantile(unlist(df.temp.1[,2]), probs = 0.75), 2), ")")
         }
         else if (cov$Measure[k]==4) {
-          cov$Total[k] <- paste0(round(stats::quantile(df.temp.1[,2], probs = 0.05), 2), "; ", round(stats::quantile(df.temp.1[,2], probs = 0.95), 2))
+          cov$Total[k] <- paste0(round(stats::quantile(unlist(df.temp.1[,2]), probs = 0.05), 2), "; ", round(stats::quantile(unlist(df.temp.1[,2]), probs = 0.95), 2))
         }
         else if (cov$Measure[k]==5) {
           cov$Total[k] <- paste0(round(min(df.temp.1[,2]), 2), "; ", round(max(df.temp.1[,2]), 2))
@@ -687,7 +672,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         }
       }
 
-      for (j in sort(unique(df.cont[,i]))) {
+      for (j in sort(unique(unlist(df.cont[,i])))) {
         df.temp <- cov[, 1:2]
         df.temp$Temp <- NA
 
@@ -707,19 +692,19 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
             df.temp$Temp[k] <- "--"
           }
           else if (df.temp$Measure[k]==2) {
-            df.temp$Temp[k] <- paste0(round(mean(df.temp.1.1[,2]), 2), " (", round(stats::sd(df.temp.1.1[,2]), 2), ")")
+            df.temp$Temp[k] <- paste0(round(mean(unlist(df.temp.1.1[,2])), 2), " (", round(stats::sd(unlist(df.temp.1.1[,2])), 2), ")")
           }
           else if (df.temp$Measure[k]==3 & nrow(df.temp.1.1)==0) {
             df.temp$Temp[k] <- "--"
           }
           else if (df.temp$Measure[k]==3) {
-            df.temp$Temp[k] <- paste0(round(stats::median(df.temp.1.1[,2]), 2), " (", round(stats::quantile(df.temp.1.1[,2], probs = 0.25), 2), "; ", round(stats::quantile(df.temp.1[,2], probs = 0.75), 2), ")")
+            df.temp$Temp[k] <- paste0(round(stats::median(unlist(df.temp.1.1[,2])), 2), " (", round(stats::quantile(unlist(df.temp.1.1[,2]), probs = 0.25), 2), "; ", round(stats::quantile(unlist(df.temp.1[,2]), probs = 0.75), 2), ")")
           }
           else if (df.temp$Measure[k]==4 & nrow(df.temp.1.1)==0) {
             df.temp$Temp[k] <- "--"
           }
           else if (df.temp$Measure[k]==4) {
-            df.temp$Temp[k] <- paste0(round(stats::quantile(df.temp.1.1[,2], probs = 0.05), 2), "; ", round(stats::quantile(df.temp.1.1[,2], probs = 0.95), 2))
+            df.temp$Temp[k] <- paste0(round(stats::quantile(unlist(df.temp.1.1[,2]), probs = 0.05), 2), "; ", round(stats::quantile(unlist(df.temp.1.1[,2]), probs = 0.95), 2))
           }
           else if (df.temp$Measure[k]==5 & nrow(df.temp.1.1)==0) {
             df.temp$Temp[k] <- "--"
@@ -759,9 +744,13 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       }
       cov <- cov[, -1]
 
-      utils::write.csv(cov, paste0(dir, paste0("\\CONTCOV_by_", i, ".csv")), row.names = F, quote = F, na=".")
+      out <- append(out, list(cov))
 
-      if(docx==T) {
+      if(!is.na(dir)) {
+        utils::write.csv(cov, paste0(dir, paste0("\\CONTCOV_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
+      }
+
+      if(!is.na(dir) & docx==TRUE) {
         flextable::set_flextable_defaults(
           font.size = docx.size,
           font.family = docx.font)
@@ -796,7 +785,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         # }
       # START: Michael's additions
       # DESCRIPTION: This just addes to the footer of all of the operations on the data.
-      if (ignore.c==T || length(ignore.request) != 0) {
+      if (ignore.c==TRUE || length(ignore.request) != 0) {
         cov1 <- flextable::add_footer_lines(cov1, values = ignored_string)
 
       }
@@ -807,7 +796,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
         print(tmplt, target = paste0(dir, "\\CONTCOV_by_", i, ".docx"))
       }
 
-      if(pptx==T) {
+      if(!is.na(dir) & pptx==TRUE) {
         flextable::set_flextable_defaults(
           font.size = pptx.size,
           font.family = pptx.font)
@@ -830,4 +819,7 @@ pk_summarize <- function(file, strat.by = "NSTUDYC",
       }
     }
   }
+
+  #out <- out[2:length(out)]
+  return(out)
 }

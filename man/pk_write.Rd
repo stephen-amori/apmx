@@ -18,7 +18,6 @@ writes dataset to specified location
 Dataset created by pk_build() or pk_combine() will be outputted as a .csv file with NONMEM-standard formatting.
 }
 \examples{
-\dontshow{if (exists("df_path")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 ## Simple ex domain with 1 subject and 1 dose
 ex <- data.frame(STUDYID = "ABC101",
                  USUBJID = "ABC101-001",
@@ -59,9 +58,7 @@ pc <- data.frame(USUBJID = "ABC101-001",
 df <- pk_build(ex, pc)
 
 ## Write with pk_write()
-df_path ##User designated filepath "C:/.../dataset.csv"
-if(file.exists(df_path)) {
-  pk_write(df, df_path)
-}
-\dontshow{\}) # examplesIf}
+name <- "dataset.csv"
+pk_write(df, file.path(tempdir(), name))
+
 }

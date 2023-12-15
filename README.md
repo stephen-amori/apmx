@@ -133,28 +133,29 @@ The same prefix and suffix system is applied to covariates built with `cov_apply
 `pk_write()` will write out a PK(PD) dataset as a .csv file to the filepath of your choice in a NONMEM-ready format.  
 
 #### pk_define()
-`pk_define()` will create a definition file for a PK(PD) dataset built by `pk_build()` as a .docx document.  
-The dataset is read into the function from its filepath and output the definition file to the same directory.  
+`pk_define()` will create a definition file for a PK(PD) dataset built by `pk_build()`. It can be produced as a data frame in R or exported as a Word document.
+The function requres a dataset and a list of variable definitions. For more information on this list, refer to `variable_list_create()`.  
 
-Two other inputs are required:
-* `project`: character string to specify project name. This name will appear in the header of the definition file.  
-* `variable.list`: this is a file path to the list of variable definitions (.csv file) you wish to use. We recommend maintaining a list of global variable definitions for all projects. You can download a starter variable list with the function `apmx::variable_list_export()` that includes the apmx variable names. You can then add your own covariates or additional variables to the list. The variable list should have the following columns in this order:  
+Other arguments:
+* `file`: filepath to a .docx file to specify the file name and location of exported Word document 
+* `project`: character string to specify project name. This name will appear in the header of the definition file if the template contains the word "Project" in the header.  
+* `data`: character string to specify dataset name. This name will appear in the header of the definition file if the template contains the word "Dataset" in the header.  
+* `variable.list`: data frame of variable definitions you wish to use. The variable list should have the following columns in this order:  
     + Variable: variable name (covariates just need the root term for proper definitions. For example, the variable for covariates "NSEX" and "NSEXC" only need to be listed once as "SEX")  
     + Category: desired variable category  
     + Description: desired variable description (covariates are automatically detected as "subject-level" or "time-varying" and labeled as such, you only need to provide the root definition. For example, the description for "SEX" can be listed "sex". For NSEX, the definition file would read "Subject sex".)  
     + Comment: desired comment  
-* `template`: optoinal template .docx document you wish to use. The definition table will append to the end of the document. If you leave the template blank, the definition table will read into a blank document.  
+* `template`: optional filepath to template .docx document you wish to use. The definition table will append to the end of the document. If you leave the template blank, the definition table will read into a blank document, and `project` and `data` parameters will be ignored.  
   
 #### pk_summarize()
 `pk_summarize()` will create summary tables (BLQ, categorical covariates, and continuous covariates) of the dataset created by `pk_build()` or `pk_combine()`.  
-Summary tables are produced as .csv files, .docx files, and/or .pptx files. They can be stratified by any variable in the dataset.  
+Summary tables can be exported as .csv files, .docx files, and/or .pptx files. They can be stratified by any variable in the dataset. You can filter the dataset prior to summary statistics.    
   
- #### version_log()
- `version_log()` will create a version log of datasets created by `pk_build()` or `pk_combine()`. All datasets should be stored in the same folder for easy version control. The version log will document subject totals, record totals, new variables, changed variables, and user comments.  
- The version log is published as a .docx file.  
+#### version_log()
+ `version_log()` will create a version log of datasets created by `pk_build()` or `pk_combine()`. The first time you call the function, it will create an initial entry. You can export the version log as a Word document. Then, after you create a new, updated dataset, you can call the `version_log()` again. If you provide the filepath to the current version log, the new dataset, and the old dataset, the version log will add the new dataset and provide a brief summary comparison of the two.  
  
- #### variable_list_export()
- `variable_list_export()` is a helper function for `pk_define()` that writes out a standard variable list to your preferred filepath.  
+#### variable_list_create()
+ `variable_list_create()` is a helper function for `pk_define()` that creates a standard variable list. The standard apmx variable names and definitions are already included. You can add your own variables (custom covariates, etc.) so they are included in the definition file.  
   
 ## Future Development
 

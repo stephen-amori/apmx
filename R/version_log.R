@@ -4,9 +4,9 @@
 #' Document tracks changes in subject count, record count, new variables, and changing variables.
 #' User comments in the word document are preserved between versions.
 #'
-#' @param file filepath of new dataset
-#' @param orig original dataset flag
-#' @param outdir output directory, defaults to dataset directory
+#' @param df filepath of new dataset
+#' @param name name of the dataset (filename with .csv suffix)
+#' @param file filepath for version log file (.docx)
 #' @param prevdata comparison dataset filepath
 #' @param template template docx filepath
 #' @param comp_var grouping variables for comparison
@@ -17,7 +17,7 @@
 #'
 #' @return version log as a .docx file
 #'
-#' @examplesIf exists("df_path")
+#' @examples
 #' ## Simple ex domain with 1 subject and 1 dose
 #' ex <- data.frame(STUDYID = "ABC101",
 #'                  USUBJID = "ABC101-001",
@@ -57,20 +57,12 @@
 #' ## Create with pk_build()
 #' df <- pk_build(ex, pc)
 #'
-#' ## Write with pk_write()
-#' df_path ##User designated filepath "C:/.../dataset.csv"
-#' if (file.exists(df_path)) {
-#'   pk_write(df, df_path)
-#' }
-#'
 #' ## Document with version_log()
-#' if (file.exists(df_path)) {
-#'   version_log(df_path, orig = T, comp_var = c("USUBJID", "ATFD", "CMT"))
-#' }
+#' vlog <- version_log(df, name = "PK_DATA_V01.csv")
 #'
 #' @export
 #'
-version_log <- function(file, orig = F, outdir = NULL,
+version_log <- function(df, name, file = NULL,
                         prevdata = NULL, template = NULL,
                         comp_var, src_data = "",
                         font = "Times New Roman", size = 9,
@@ -78,25 +70,18 @@ version_log <- function(file, orig = F, outdir = NULL,
   content_type <- is_header <- row_id <- cell_id <- text <- NULL
   DATASET <- COMMENTS <- ROW <- NULL
 
-  # QC: If file doesn't exist, inform user.
-  if (!file.exists(file)) {
-    stop(paste("Error,", file, "does not exist!"))
-  }
 
-  data <- utils::read.csv(file, na.strings=".")
-  name <- basename(file)
+
+  data <- df
 
   # QC: If file is not .csv, throw error.
   if (!grepl("\\.csv$", name)) {
-    stop("There is no csv file. Need a csv file.")
+    stop("name parameter must end with .csv suffix to refer to a dataset file")
   }
-  if(is.null(outdir)) {
-    outpath <- paste0(dirname(file), "/")
+  if(!is.null(file)) {
+    outpath <- file
   }
-  else {
-    outpath <- outdir
-  }
-  if(orig == T) {
+  if(is.null(file)) {
     VersionLog <- data.frame(
       ROW = c("1"),
       DATASET = c(name),
@@ -109,6 +94,30 @@ version_log <- function(file, orig = F, outdir = NULL,
       SRCDATA = c(src_data),
       COMMENTS = c("")
     )
+
+    return(VersionLog)
+  }
+
+  else if(!is.null(file) & !file.exists(file)) {
+    if(!dir.exists(this.path::dirname2(file)) | this.path::dirname2(file)==".") {
+      #print(paste("working dir", getwd()))
+      #print(paste("path, ", this.path::dirname2(file)))
+      stop("directory in file parameter does not exist")
+    }
+
+    VersionLog <- data.frame(
+      ROW = c("1"),
+      DATASET = c(name),
+      NSTUD = c(as.character(length(unique(data$NSTUDY)))),
+      NSUB = c(as.character(length(unique(data$USUBJID)))),
+      NROW = c(as.character(nrow(data))),
+      NEW_VAR = c("Original Dataset"),
+      CHG_VAR = c("Original Dataset"),
+      REF_ROW = c("-"),
+      SRCDATA = c(src_data),
+      COMMENTS = c("")
+    )
+
     VersionLog2 <- flextable::flextable(VersionLog) #creates flextable object
     VersionLog2 <- flextable::border_inner_h(VersionLog2,
                                              part = "body", #removes inside borders
@@ -177,20 +186,32 @@ version_log <- function(file, orig = F, outdir = NULL,
       sect_properties <- officer::prop_section(
         page_size = officer::page_size(
           orient = "landscape"))
-      flextable::save_as_docx(VersionLog2, path = paste0(outpath, "/VersionLog.docx"), pr_section = sect_properties)
+      if(!is.null(file)) {
+        flextable::save_as_docx(VersionLog2, path = paste0(file), pr_section = sect_properties)
+      }
     }
     else {
       tmplt <- officer::read_docx(path = template) #read in template form
       tmplt <- flextable::body_add_flextable(tmplt, VersionLog2) #add flextable to the document
-      print(tmplt, target = paste0(outpath, "/VersionLog.docx"))
+      if(!is.null(file)) {
+        print(tmplt, target = paste0(file))
+      }
     }
+
+    return(VersionLog)
   }
-  else {
-    if(orig==F & !is.null(outdir) &
-       !(file.exists(paste0(outpath, "/VersionLog.docx")))) {
-      stop("There is no preexisting version log in the outpath provided")
+
+  else if (!is.null(file) & file.exists(file)) {
+
+    if(!dir.exists(this.path::dirname2(file)) | this.path::dirname2(file)==".") {
+      stop("directory in file parameter does not exist")
     }
-    VersionLogdoc <- officer::read_docx(paste0(outpath, "/VersionLog.docx"))
+
+    if(is.null(prevdata)) {
+      stop("Version log already exists. Please include filepath to previous dataset in prevdata argument for comparison.")
+    }
+
+    VersionLogdoc <- officer::read_docx(file)
     VersionLogsum <- officer::docx_summary(VersionLogdoc)
     table_cells <- dplyr::filter(VersionLogsum, content_type == "table cell")
     table_data <- dplyr::filter(table_cells, !is_header)
@@ -206,21 +227,19 @@ version_log <- function(file, orig = F, outdir = NULL,
     VersionLog <- table_result
     comments <- dplyr::select(VersionLog, DATASET, COMMENTS)
     for(i in 1:nrow(VersionLog)) {
-      if(VersionLog$DATASET[i] == basename(file) & i < nrow(VersionLog)) {
-        stop("This file is not the most recent dataset version")
+      if(VersionLog$DATASET[i] == name & i < nrow(VersionLog)) {
+        stop("This file is not the most recent dataset. This dataset already exists in the version log.")
       }
     }
     if(nrow(VersionLog) > 1) {
-      VersionLog2 <- dplyr::filter(VersionLog, DATASET != basename(file))
-      VersonLog2 <- dplyr::select(VersionLog2, -COMMENTS)
+      VersionLog2 <- dplyr::filter(VersionLog, DATASET != name)
+      VersionLog2 <- dplyr::select(VersionLog2, -COMMENTS)
     } else {
       VersionLog2 <- dplyr::select(VersionLog, -COMMENTS)
     }
-    if(is.null(prevdata)) {
-      prev_data <- utils::read.csv(gsub(basename(file), VersionLog2$DATASET[nrow(VersionLog2)], file), na.strings = ".")
-    } else {
-      prev_data <- utils::read.csv(prevdata, na.strings = ".")
-    }
+
+    prev_data <- utils::read.csv(prevdata, na.strings = ".")
+
     check1 <- dplyr::group_by_at(prev_data, comp_var)
     check1 <- dplyr::mutate(check1, COMPROWN = dplyr::row_number())
     check1 <- dplyr::ungroup(check1)
@@ -238,11 +257,9 @@ version_log <- function(file, orig = F, outdir = NULL,
     changes <- table$diffs.table$var.y
     changes2 <- unique(changes)
     changes3 <- paste(changes2, collapse=", ")
-    if(is.null(prevdata)) {
-      ref_row <- dplyr::mutate(VersionLog2, ROW = max(ROW))
-    } else {
-      ref_row <- dplyr::filter(VersionLog2, DATASET == basename(prevdata))
-    }
+
+    ref_row <- dplyr::filter(VersionLog2, DATASET == basename(prevdata))
+
     VersionLog3 <- dplyr::add_row(VersionLog2,
                                   DATASET = name,
                                   NSTUD = as.character(length(unique(data$NSTUDY))),
@@ -321,12 +338,14 @@ version_log <- function(file, orig = F, outdir = NULL,
       sect_properties <- officer::prop_section(
         page_size = officer::page_size(
           orient = "landscape"))
-      flextable::save_as_docx(VersionLog4, path = paste0(outpath, "/VersionLog.docx"), pr_section = sect_properties)
+      flextable::save_as_docx(VersionLog4, path = paste0(file), pr_section = sect_properties)
     }
     else {
       tmplt <- officer::read_docx(path = template) #read in template form
       tmplt <- flextable::body_add_flextable(tmplt, VersionLog4) #add flextable to the document
-      print(tmplt, target = paste0(outpath, "/VersionLog.docx"))
+      print(tmplt, target = paste0(file))
     }
+
+    return(VersionLog3)
   }
 }

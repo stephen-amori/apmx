@@ -77,65 +77,46 @@ test_that("QC Checks", {
     # source("R/version_log.R")
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
-    dir <- getwd()
+    #dir <- getwd()
     # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
     # dir <- paste0(dir, "/tests/testthat/version_log-data/pkdf")
     # out <- paste0(getwd(), "/tests/testthat/version_log-data/")
     # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    dir <- paste0(dir, "/version_log-data/pkdf")
-    out <- paste0(getwd(), "/version_log-data")
+    #dir <- paste0(dir, "/version_log-data/pkdf")
+    #out <- paste0(getwd(), "/version_log-data")
+    expect_error(version_log(df = pkdf, name = "dataset"),
+                 "name parameter must end with .csv suffix to refer to a dataset file")
 
-    expect_error(version_log(file = dir, orig = T, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")))
-    
-    # Correction:
-    dir <- getwd()
-    # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/version_log-data/pkdf.csv") 
-    # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    dir <- paste0(dir, "/version_log-data/pkdf.csv")
-    
-    version_log(file = dir, orig = T, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
+    expect_error(version_log(df = pkdf, name = "dataset.csv", file = "notarealpath"),
+                 "directory in file parameter does not exist")
 
-    # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # version_log_dir <- paste0(getwd(), "/tests/testthat/version_log-data/VersionLog.docx")
-    # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    version_log_dir <- paste0(getwd(), "/version_log-data/VersionLog.docx")
-    # Appending the version log.
-    expect_error(version_log(file = paste0(getwd(), "/test-pk-define-files/pkdf2.csv"), 
-      orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")), 
-      "The compare variables do not provide unique records")
+    version_log(df = pkdf, name = "dataset.csv",
+                file = "version_log-data/versionlog.docx")
 
-    dir <- getwd()
-    # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/version_log-data/pkdf2.csv")
-    # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    dir <- paste0(dir, "/version_log-data/pkdf2.csv")
+    expect_true(file.exists("version_log-data/versionlog.docx"))
 
-    version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
-    dir <- getwd()
-    # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/version_log-data/pkdf3.csv")
-    # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    dir <- paste0(dir, "/version_log-data/pkdf3.csv")
-    version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT"))
+    pk_write(pkdf, "version_log-data/dataset.csv")
 
-    dir <- getwd()
-    # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ DEBUG MODE ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-    # dir <- paste0(dir, "/tests/testthat/version_log-data/pkdf.csv")
-    # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ DEBUG MODE ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-    dir <- paste0(dir, "/version_log-data/pkdf.csv")
+    pkdf2 <- pkdf
+    pkdf2$NEWCOLUMN <- 2*1:nrow(pkdf2)
 
-    # Having original data to false, and version log is expecting data, but there is non.
-    expect_error(version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")),
-    "This file is not the most recent dataset version")
+    expect_error(version_log(df = pkdf2, name = "dataset2.csv",
+                             file = "notarealpath",
+                             prevdata = "version_log-data/dataset.csv", src_data = "same as dataset.csv",
+                             comp_var = c("USUBJID", "ATFD", "EVID", "DVID")),
+                 "directory in file parameter does not exist")
 
-    out <- paste0(getwd(), "/version_log-data")
-    files_to_append <- list.files(out, pattern = "^V.*", full.names = TRUE)
-    expect_length(files_to_append, 1)
-    # Clean up files.
-    unlink(version_log_dir)
+    expect_error(version_log(df = pkdf2, name = "dataset2.csv",
+                             file = "version_log-data/versionlog.docx",
+                             src_data = "same as dataset.csv",
+                             comp_var = c("USUBJID", "ATFD", "EVID", "DVID")),
+                 "Version log already exists. Please include filepath to previous dataset in prevdata argument for comparison.")
 
-    expect_error(version_log(file = dir, orig = F, outdir = out, comp_var = c("USUBJID", "ATFD", "CMT")), 
-    "There is no preexisting version log in the outpath provided")
-
+    expect_error(version_log(df = pkdf2, name = "dataset2.csv",
+                             file = "version_log-data/versionlog.docx",
+                             prevdata = "version_log-data/dataset.csv", src_data = "same as dataset.csv",
+                             comp_var = c("USUBJID")),
+                 "The compare variables do not provide unique records")
+    unlink("version_log-data/versionlog.docx")
+    unlink("version_log-data/dataset.csv")
 })

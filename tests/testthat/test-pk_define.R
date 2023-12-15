@@ -39,7 +39,7 @@ PC <- data.frame(
     DTIM = ex_iso_dates[1:6],
     NDAY = c(1, 2, 3, 2, 5, 4),
     DOMAIN = rep("PC", 6),
-    TPT = rep(1, 6), 
+    TPT = rep(1, 6),
     ODV = rep(1, 6),
     LLOQ = rep(0.05, 6),
     CMT = c(6,0,5,1,2,3),
@@ -49,7 +49,7 @@ PC <- data.frame(
     DVIDU = "mg/dl"
 )
 
-second_iso_dates <- c( 
+second_iso_dates <- c(
   "2022-08-17T12:40:30Z",
   "2020-11-25T14:50:00Z",
   "2021-05-01T07:20:01Z",
@@ -102,37 +102,40 @@ test_that("pk_define QC Checks", {
     suppressWarnings({
         pkdf <- pk_build(ex = EX, pc = PC)
     })
-    # Use line below if using testthat.
-    pk_write(pkdf, file = "test-pk-define-files/pkdf.csv")
 
-    # Use line below if using R console. (Using devtools::test() uses a different directory.)
-    # pk_write(pkdf, file = "tests/testthat/test-pk-define-files/pkdf.csv")
-    # unlink("tests/testthat/test-pk-define-files/pkdf.csv")
-
-    expect_error(pk_define(file = "not-valid-file"), "not-valid-file is not a valid filepath.")
-    expect_error(pk_define(file = "tests/testthat/test-pk-define-files/pkdf"),
-                         "filepath must include document name and .csv suffix.")
-    expect_error(pk_define(file = "test-pk-define-files/pkdf.csv", size = "NA"), 
-                                                "size parameter must be numeric.")
-    expect_error(pk_define(file = "test-pk-define-files/pkdf.csv", size = 0), 
-                            "size parameter must be greater than or equal to 0.")
-    expect_error(pk_define(file = "test-pk-define-files/pkdf.csv", font = 0), 
-                            "font parameter must be character font description.")
-    expect_error(pk_define(file = "test-pk-define-files/pkdf.csv", na = "NA"),
-                             "na must be numeric type.")
+    expect_error(pk_define(df = pkdf, file = "not-valid-file"),
+                 "not-valid-file is not a valid filepath.")
+    expect_error(pk_define(df = pkdf, file = "tests/testthat/test-pk-define-files/pkdf"),
+                 "filepath must include document name and .docx suffix.")
+    expect_error(pk_define(df = pkdf, size = "NA"),
+                 "size parameter must be numeric.")
+    expect_error(pk_define(df = pkdf, file = "test-pk-define-files/define.docx", size = 0),
+                 "size parameter must be greater than or equal to 0.")
+    expect_error(pk_define(df = pkdf, file = "test-pk-define-files/define.docx", font = 0),
+                 "font parameter must be character font description.")
+    expect_error(pk_define(df = pkdf, file = "test-pk-define-files/define.docx", na = "NA"),
+                 "na must be numeric type.")
 })
 
 test_that("Checking to see if define file was created", {
     # A many to many relationship from a left join.
     # Suppressing this warning.
     suppressWarnings({
-        pk_define(file = "test-pk-define-files/pkdf.csv",
+      pkdf <- pk_build(ex = EX, pc = PC)
+    })
+
+    vl <- variable_list_create()
+
+    suppressWarnings({
+        pk_define(df = pkdf,
+                  variable.list = vl,
+                  file = "test-pk-define-files/define.docx",
                   project = "Testings",
+                  data = "Dataset.csv",
                   na = -999,
-                  variable.list = "test-pk-define-files/test-variable-list.csv",
-                  template      = "test-pk-define-files/template_define.docx")
+                  template = "test-pk-define-files/template_define.docx")
     })
         # This writes in place.
-        expect_true(file.exists("test-pk-define-files\\DEFINE_pkdf.docx"))
-        unlink("test-pk-define-files\\DEFINE_pkdf.docx")
+        expect_true(file.exists("test-pk-define-files\\define.docx"))
+        unlink("test-pk-define-files\\define.docx")
 })

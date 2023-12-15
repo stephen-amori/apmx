@@ -38,7 +38,7 @@ PC <- data.frame(
     DTIM = ex_iso_dates[1:6],
     NDAY = c(1, 2, 3, 2, 5, 4),
     DOMAIN = rep("PC", 6),
-    TPT = rep(1, 6), 
+    TPT = rep(1, 6),
     ODV = rep(1, 6),
     LLOQ = rep(0.05, 6),
     CMT = c(6,0,5,1,2,3),
@@ -57,19 +57,23 @@ test_that("Filter out (new addition!)", {
     suppressWarnings({
         pkdf <- pk_build(ex = EX, pc = PC)
     })
-    dir <- paste0(getwd(), "/test-pk-summarize-files/test1.csv")
-    
+    #dir <- paste0(getwd(), "/test-pk-summarize-files/test1.csv")
+
     # dir <- "C://Users//michael.dick//Documents//apmx//temp-csvs//test1.csv"
-    pk_write(pkdf, dir)
+    #pk_write(pkdf, dir)
     # TODO: Error messages changed. Need to see what to replace it with.
     # expect_error(pk_summarize(file = dir, ignore_request = c("USUBJID == D")), regexp = "unused argument (ignore_request = c(\"USUBJID == D\"))")
     # expect_error(pk_summarize(file = dir, ignore_request = c("NOT == D")), regexp = "unused argument (ignore_request = c(\"USUBJID == D\")).")
     # expect_error(pk_summarize(file = dir, ignore_request = c("SUBJID = 2")), regexp = "unused argument (ignore_request = c(\"USUBJID == D\"))")
-    expect_error(pk_summarize(file = "not-a-valid-path-no-slashes"), "not-a-valid-path-no-slashes is not a valid filepath.")
-    expect_error(pk_summarize(file = "seems//legit//but-no-csv"), "filepath must include document name and .csv suffix.")
-    expect_error(pk_summarize(file = dir, strat.by = 91191), regexp = "strat.by must be in character form only")
-    expect_error(pk_summarize(file = dir, ignore.c = "2"), regexp = "ignore.c parameter must be TRUE or FALSE.")
-    expect_error(pk_summarize(file = dir, docx.template = "some-file-path//fail.pdf"), regexp = "fail.pdf must include document name and .docx suffix.")
+    expect_error(pk_summarize(df = pkdf, strat.by = 91191), regexp = "strat.by must be in character form only")
+    expect_error(pk_summarize(df = pkdf, ignore.c = "2"), regexp = "ignore.c parameter must be TRUE or FALSE.")
+    expect_error(pk_summarize(df = pkdf, na = "hello"), regexp = "na parameter must be numeric")
+    expect_error(pk_summarize(df = pkdf, docx = "hello"), regexp = "docx parameter must be TRUE or FALSE")
+    expect_error(pk_summarize(df = pkdf, pptx = "hello"), regexp = "pptx parameter must be TRUE or FALSE")
+    expect_error(pk_summarize(df = pkdf, pptx = "hello"), regexp = "pptx parameter must be TRUE or FALSE")
+    expect_error(pk_summarize(df = pkdf, pptx = "hello"), regexp = "pptx parameter must be TRUE or FALSE")
+    expect_error(pk_summarize(df = pkdf, docx = TRUE, docx.template = "some-file-path//fail.pdf"),
+                 "fail.pdf must include document name and .docx suffix.")
 })
 
 
@@ -79,12 +83,12 @@ test_that("Writing CSVs", {
     suppressWarnings({
         pkdf <- pk_build(ex = EX, pc = PC)
     })
-    working_dir <- getwd()
-    working_dir <- paste0(working_dir, "/test-pk-summarize-files/test1.csv")
-    pk_write(pkdf, working_dir)
-    pk_summarize(file = working_dir)
-    
-    working_dir <- getwd()
+
+    expect_length(pk_summarize(df = pkdf), 3)
+
+    pk_summarize(df = pkdf,
+                 dir = "test-pk-summarize-files")
+
     blq_check_path <- paste0("test-pk-summarize-files\\BLQ_by_NSTUDYC.csv")
     contcov_check_path <- paste0("test-pk-summarize-files\\CONTCOV_by_NSTUDYC.csv")
     catcov_check_path <- paste0("test-pk-summarize-files\\CATCOV_by_NSTUDYC.csv")
@@ -103,13 +107,11 @@ test_that("Testing Word and PowerPoint", {
     suppressWarnings({
         pkdf <- pk_build(ex = EX, pc = PC)
     })
-    working_dir <- getwd()
     # DEBUG: (These filepaths are for when you're not using devtools::test().)
     # data_dir <- paste0(working_dir, "/tests/testthat/test-pk-summarize-files/test1.csv")
-    
-    data_dir <- paste0(working_dir, "/test-pk-summarize-files/BLQ_by_NSTUDYC.csv")
-    pk_write(pkdf, data_dir)
-    pk_summarize(file = data_dir)
+
+    pk_summarize(df = pkdf,
+                 dir = "test-pk-summarize-files")
 
     # DEBUG:
     # check_blq <- read.csv(paste0(working_dir, "/tests/testthat/test-pk-summarize-files/BLQ_by_NSTUDYC.csv"))
@@ -132,7 +134,7 @@ test_that("Testing Word and PowerPoint", {
 
     # DEBUG:
     # check_cat_cov <- read.csv(paste0(working_dir, "/tests/testthat/test-pk-summarize-files/CONT_COV_by_NSTUDY.csv"))
-    
+
     check_cont_cov <- read.csv(paste0("test-pk-summarize-files\\CONTCOV_by_NSTUDYC.csv"))
     expect_equal(check_cont_cov$STUDYID[1], "BAGE")
     expect_equal(check_cont_cov$STUDYID[3], "30.6 (6.23)")

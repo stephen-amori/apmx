@@ -4,17 +4,19 @@
 #' Definitions are sourced from a variable list stored separately on your server.
 #' Please refer to apmx::variable_list_export() for a standard copy of the variable list.
 #'
-#' @param file filepath of PK(PD) dataset
+#' @param df apmx analysis dataset
+#' @param file optional filepath for defintion file (.docx file)
 #' @param project project name
-#' @param variable.list filepath of variable definition csv dataset
-#' @param template filepath of docx definition file template
+#' @param data dataset name
+#' @param variable.list reference dataframe for variable definitions
+#' @param template optional filepath for definition file template (.docx file)
 #' @param font font for table contents
 #' @param size font size for table contents
 #' @param na value used for missing or na numeric covariates
 #'
-#' @return writes definition file (.docx) to dataset location
+#' @return dataset definition file
 #'
-#' @examplesIf exists("df_path") & exists("vl_path")
+#' @examples
 #' ## Simple ex domain with 1 subject and 1 dose
 #' ex <- data.frame(STUDYID = "ABC101",
 #'                  USUBJID = "ABC101-001",
@@ -51,44 +53,40 @@
 #'                  PCTEST = "ABC",
 #'                  PCSTRESU = "ug/mL")
 #'
-#' ## Create with pk_build()
+#' ## Create apmx dataset with pk_build()
 #' df <- pk_build(ex, pc)
 #'
-#' ## Write with pk_write()
-#' df_path ##User designated filepath "C:/.../dataset.csv"
-#' if (file.exists(df_path)) {
-#'   pk_write(df, df_path)
-#' }
+#' ## Create variable definitions with variable_list_create()
+#' vl <- variable_list_create()
 #'
-#' ## Create definition file with pk_define()
-#' vl_path ##User designated variable list filepath "C:/.../variablelist.csv"
-#' if (file.exists(vl_path)) {
-#'   pk_define(df_path, "Project Name", vl_path)
-#' }
+#' ## Create definition file
+#' pk_define(df, variable.list = vl)
 #'
 #' @export
-pk_define <- function(file, project, variable.list, template=NULL,
+pk_define <- function(df, file=NULL, project, data, variable.list, template=NULL,
                       font="Times New Roman", size=9, na = -999) {
   CMT <- DVID <- EVID <- Variable <- Description <- Units <- Numeric <- NULL
   Character <- Values <- Format <- Comment <- Categorization <- NULL
 
-  data.dir <- this.path::dirname2(file) #directory of the dataset
+  if(!is.null(file)) {
+    def.dir <- this.path::dirname2(file) #filepath of definition file
 
-  if (data.dir==".") {
-    stop(paste(file, "is not a valid filepath."))
-  }
+    if (def.dir==".") {
+      stop(paste(file, "is not a valid filepath."))
+    }
 
-  data.name <- this.path::basename2(file) #dataset name including extension
+    def.name <- this.path::basename2(file) #dataset name including extension
 
-  if (!grepl(".csv$", data.name)) {
-    stop(paste("filepath must include document name and .csv suffix."))
+    if (!grepl(".docx$", def.name)) {
+      stop(paste("filepath must include document name and .docx suffix."))
+    }
   }
 
   if(!is.null(template)) {
     temp.dir <- this.path::dirname2(template) #directory of the dataset
 
     if (temp.dir==".") {
-      stop(paste(file, "is not a valid filepath."))
+      stop(paste(template, "is not a valid filepath."))
     }
 
     temp.name <- this.path::basename2(template) #dataset name including extension
@@ -113,9 +111,7 @@ pk_define <- function(file, project, variable.list, template=NULL,
     stop("na must be numeric type.")
   }
   ###CREATE DEFINITION FILE###
-  df <- utils::read.csv(file, na.strings=".")
-  vl <- utils::read.csv(variable.list,
-                        col.names = c("Variable", "Categorization", "Description", "Comment"))
+  vl <- variable.list
 
   define <- data.frame("Variable" = colnames(df))
 
@@ -314,7 +310,7 @@ pk_define <- function(file, project, variable.list, template=NULL,
   define <- dplyr::left_join(define, vl, by="Variable") #join variable list
   define <- dplyr::group_by(define, Variable)
   define <- dplyr::mutate(define,
-                          Format = paste0(toupper(substr(typeof(df[, Variable]), 1, 1)), substr(typeof(df[, Variable]), 2,  nchar(typeof(df[, Variable]))))) #Determine type of each column
+                          Format = paste0(toupper(substr(typeof(unlist(df[, Variable])), 1, 1)), substr(typeof(unlist(df[, Variable])), 2,  nchar(typeof(unlist(df[, Variable])))))) #Determine type of each column
   define <- dplyr::ungroup(define)
   define <- dplyr::mutate(define,
                           Format = dplyr::case_when(Variable %in% c("C", "DTIM", "FDOSE") ~ "Character", #Final formatting for this column
@@ -337,56 +333,62 @@ pk_define <- function(file, project, variable.list, template=NULL,
 
   define$Units[define$Variable=="CMT"] <- c(cmtd$DVIDU, cmto$DVIDU) #Add CMT units
 
-  flextable::set_flextable_defaults(
-    font.size = size,
-    font.family = font)
+  read.out <- define
 
-  define <- flextable::flextable(define)
-  define <- flextable::border_inner_h(define,
-                                      part = "body",
-                                      border = officer::fp_border(color = "grey", width = 0.1, style="solid"))
-  define <- flextable::merge_v(define,
-                               j = c(1, 2, 3, 6, 7), target = c(1, 2, 3, 6, 7), part = "body", combine = T)
-  define <- flextable::bold(define, part = "header")
-  define <- flextable::height(define, height = 0.3, unit = "in")
+  if(!is.null(file)) {
+    flextable::set_flextable_defaults(
+      font.size = size,
+      font.family = font)
 
-  widths <- flextable::dim_pretty(define)
-  if (sum(unlist(widths[1])) <= 9) {
-    define <- flextable::autofit(define)
+    define <- flextable::flextable(define)
+    define <- flextable::border_inner_h(define,
+                                        part = "body",
+                                        border = officer::fp_border(color = "grey", width = 0.1, style="solid"))
+    define <- flextable::merge_v(define,
+                                 j = c(1, 2, 3, 6, 7), target = c(1, 2, 3, 6, 7), part = "body", combine = TRUE)
+    define <- flextable::bold(define, part = "header")
+    define <- flextable::height(define, height = 0.3, unit = "in")
+
+    widths <- flextable::dim_pretty(define)
+    if (sum(unlist(widths[1])) <= 9) {
+      define <- flextable::autofit(define)
+    }
+
+    else {
+      define <- flextable::width(define,
+                                 j = c(3, 4), width = 1.9, unit = "in")
+      define <- flextable::width(define,
+                                 j = 7, width = 1.5, unit = "in")
+      define <- flextable::width(define,
+                                 j = c(1, 5, 6), width = 0.9, unit = "in")
+      define <- flextable::width(define,
+                                 j = 2, width = 1, unit = "in")
+    }
+
+    define <- flextable::add_footer_lines(define,
+                                          values = 'NA parameters and missing character-type covariates labeled with "."')
+    define <- flextable::add_footer_lines(define,
+                                          values = paste("Missing numeric-type covariates labeled with", na))
+
+    ###WRITE DEFINITION FILE TO SERVER###
+    if (is.null(template)) {
+      tmplt <- officer::read_docx()
+      tmplt <- flextable::body_add_flextable(tmplt, define)
+      tmplt <- officer::body_end_section_landscape(tmplt)
+
+      print(tmplt, target = file)
+    }
+
+    else {
+      tmplt <- officer::read_docx(path=template)
+      tmplt <- flextable::body_add_flextable(tmplt, define)
+      tmplt <- officer::headers_replace_all_text(tmplt,
+                                                 "Project", project, warn=FALSE)
+      tmplt <- officer::headers_replace_all_text(tmplt,
+                                                 "Dataset", paste("Analysis Dataset:", data), warn=FALSE)
+      print(tmplt, target = file)
+    }
   }
 
-  else {
-    define <- flextable::width(define,
-                               j = c(3, 4), width = 1.9, unit = "in")
-    define <- flextable::width(define,
-                               j = 7, width = 1.5, unit = "in")
-    define <- flextable::width(define,
-                               j = c(1, 5, 6), width = 0.9, unit = "in")
-    define <- flextable::width(define,
-                               j = 2, width = 1, unit = "in")
-  }
-
-  define <- flextable::add_footer_lines(define,
-                                        values = 'NA parameters and missing character-type covariates labeled with "."')
-  define <- flextable::add_footer_lines(define,
-                                        values = paste("Missing numeric-type covariates labeled with", na))
-
-  ###WRITE DEFINITION FILE TO SERVER###
-  if (is.null(template)) {
-    tmplt <- officer::read_docx()
-    tmplt <- flextable::body_add_flextable(tmplt, define)
-    tmplt <- officer::body_end_section_landscape(tmplt)
-
-    print(tmplt, target = paste0(data.dir, "\\DEFINE_", gsub(".csv", "", data.name), ".docx"))
-  }
-
-  else {
-    tmplt <- officer::read_docx(path=template)
-    tmplt <- flextable::body_add_flextable(tmplt, define)
-    tmplt <- officer::headers_replace_all_text(tmplt,
-                                               "Project", project, warn=F)
-    tmplt <- officer::headers_replace_all_text(tmplt,
-                                               "Dataset", paste("Analysis Dataset:", data.name), warn=F)
-    print(tmplt, target = paste0(data.dir, "\\DEFINE_", gsub(".csv", "", data.name), ".docx"))
-  }
+  return(read.out)
 }

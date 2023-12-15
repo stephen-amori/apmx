@@ -81,8 +81,8 @@
 #' @export
 #'
 cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
-                      direction="downup", exp = F, ebe = F,
-                      cov.rnd=NA, na=-999, demo.map=T, keep.other=T) {
+                      direction="downup", exp = FALSE, ebe = FALSE,
+                      cov.rnd=NA, na=-999, demo.map=TRUE, keep.other=TRUE) {
   DTIM <- FDOSE <- .data <- EVID <- ATFD <- USUBJID <- ID <- NULL
   SUBJID <- NSTUDY <- NSTUDYC <- TIMEU <- CMT <- KEEP <- NULL
   ###QC id.by###
@@ -275,21 +275,21 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   for (i in 1:length(colnames(cov))) {
     name = colnames(cov)[i]
     if (name %in% c(id.by, time.by)) {next}
-    else if (exp==T) {
+    else if (exp==TRUE) {
       if (nchar(name)>7) {
         stop(paste(name, "column name in cov must be 7 characters or fewer."))
       }
       exp.cov <- c(exp.cov, paste0("C", name))
       colnames(cov)[i] <- paste0("C", name)
     }
-    else if (ebe==T) {
+    else if (ebe==TRUE) {
       if (nchar(name)>7) {
         stop(paste(name, "column name in cov must be 7 characters or fewer."))
       }
       ebe.cov <- c(ebe.cov, paste0("I", name))
       colnames(cov)[i] <- paste0("I", name)
     }
-    else if (name=="SEX" & demo.map==T) {
+    else if (name=="SEX" & demo.map==TRUE) {
       if (is.na(time.by)) {
         nname <- paste0("N", name)
       }
@@ -297,10 +297,10 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
         nname <- paste0("T", name)
       }
       cov[, nname] <- NA
-      cov[grepl("m|male", cov$SEX, ignore.case = T), nname] <- 0
-      cov[grepl("f|female", cov$SEX, ignore.case = T), nname] <- 1
-      cov[grepl("unk", cov$SEX, ignore.case = T), nname] <- 2
-      cov[grepl("other", cov$SEX, ignore.case = T), nname] <- 3
+      cov[grepl("m|male", cov$SEX, ignore.case = TRUE), nname] <- 0
+      cov[grepl("f|female", cov$SEX, ignore.case = TRUE), nname] <- 1
+      cov[grepl("unk", cov$SEX, ignore.case = TRUE), nname] <- 2
+      cov[grepl("other", cov$SEX, ignore.case = TRUE), nname] <- 3
       cat.cov.n <- c(cat.cov.n, nname)
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
       colnames(cov)[i] <- paste0(nname, "C")
@@ -308,7 +308,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
         warning(paste0("At least one ", nname, " failed to map. Consider setting demo.map = FALSE."))
       }
     }
-    else if (name=="RACE" & demo.map==T) {
+    else if (name=="RACE" & demo.map==TRUE) {
       if (is.na(time.by)) {
         nname <- paste0("N", name)
       }
@@ -316,14 +316,14 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
         nname <- paste0("T", name)
       }
       cov[, nname] <- NA
-      cov[grepl("white|caucasian", cov$RACE, ignore.case = T), nname] <- 1
-      cov[grepl("black|african|aa", cov$RACE, ignore.case = T), nname] <- 2
-      cov[grepl("asian", cov$RACE, ignore.case = T) & !grepl("caucasian", cov$RACE, ignore.case=T), nname] <- 3
-      cov[grepl("alaskan|native", cov$RACE, ignore.case = T), nname] <- 4
-      cov[grepl("hawa|pacific|island", cov$RACE, ignore.case = T), nname] <- 5
-      cov[grepl("multiple|mul", cov$RACE, ignore.case = T), nname] <- 6
-      cov[grepl("other", cov$RACE, ignore.case = T), nname] <- 7
-      cov[grepl("unknown", cov$RACE, ignore.case = T), nname] <- 8
+      cov[grepl("white|caucasian", cov$RACE, ignore.case = TRUE), nname] <- 1
+      cov[grepl("black|african|aa", cov$RACE, ignore.case = TRUE), nname] <- 2
+      cov[grepl("asian", cov$RACE, ignore.case = TRUE) & !grepl("caucasian", cov$RACE, ignore.case=TRUE), nname] <- 3
+      cov[grepl("alaskan|native", cov$RACE, ignore.case = TRUE), nname] <- 4
+      cov[grepl("hawa|pacific|island", cov$RACE, ignore.case = TRUE), nname] <- 5
+      cov[grepl("multiple|mul", cov$RACE, ignore.case = TRUE), nname] <- 6
+      cov[grepl("other", cov$RACE, ignore.case = TRUE), nname] <- 7
+      cov[grepl("unknown", cov$RACE, ignore.case = TRUE), nname] <- 8
       cat.cov.n <- c(cat.cov.n, nname)
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
       colnames(cov)[i] <- paste0(nname, "C")
@@ -331,7 +331,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
         warning(paste0("At least one ", nname, " failed to map. Consider setting demo.map = FALSE."))
       }
     }
-    else if (name=="ETHNIC" & demo.map==T) {
+    else if (name=="ETHNIC" & demo.map==TRUE) {
       if (is.na(time.by)) {
         nname <- paste0("N", name)
       }
@@ -339,10 +339,10 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
         nname <- paste0("T", name)
       }
       cov[, nname] <- NA
-      cov[grepl("not", cov$ETHNIC, ignore.case = T), nname] <- 0
-      cov[grepl("his", cov$ETHNIC, ignore.case = T) & !grepl("not", cov$ETHNIC, ignore.case=T), nname] <- 1
-      cov[grepl("unk", cov$ETHNIC, ignore.case = T), nname] <- 2
-      cov[grepl("other", cov$ETHNIC, ignore.case = T), nname] <- 3
+      cov[grepl("not", cov$ETHNIC, ignore.case = TRUE), nname] <- 0
+      cov[grepl("his", cov$ETHNIC, ignore.case = TRUE) & !grepl("not", cov$ETHNIC, ignore.case=TRUE), nname] <- 1
+      cov[grepl("unk", cov$ETHNIC, ignore.case = TRUE), nname] <- 2
+      cov[grepl("other", cov$ETHNIC, ignore.case = TRUE), nname] <- 3
       cat.cov.n <- c(cat.cov.n, nname)
       cat.cov.c <- c(cat.cov.c, paste0(nname, "C"))
       colnames(cov)[i] <- paste0(nname, "C")
@@ -527,7 +527,7 @@ cov_apply <- function(df, cov, id.by="USUBJID", time.by=NA,
   if (is.na(time.by)) {
   }
 
-  else if(keep.other==F) {
+  else if(keep.other==FALSE) {
     df <- dplyr::filter(df, KEEP == 1)
     df <- dplyr::select(df, -KEEP)
   }

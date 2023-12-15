@@ -5,8 +5,10 @@
 \title{Create definition file from published dataset}
 \usage{
 pk_define(
-  file,
+  df,
+  file = NULL,
   project,
+  data,
   variable.list,
   template = NULL,
   font = "Times New Roman",
@@ -15,13 +17,17 @@ pk_define(
 )
 }
 \arguments{
-\item{file}{filepath of PK(PD) dataset}
+\item{df}{apmx analysis dataset}
+
+\item{file}{optional filepath for defintion file (.docx file)}
 
 \item{project}{project name}
 
-\item{variable.list}{filepath of variable definition csv dataset}
+\item{data}{dataset name}
 
-\item{template}{filepath of docx definition file template}
+\item{variable.list}{reference dataframe for variable definitions}
+
+\item{template}{optional filepath for definition file template (.docx file)}
 
 \item{font}{font for table contents}
 
@@ -30,7 +36,7 @@ pk_define(
 \item{na}{value used for missing or na numeric covariates}
 }
 \value{
-writes definition file (.docx) to dataset location
+dataset definition file
 }
 \description{
 Definition file table can be read into a template word document (.docx) or blank document if desired.
@@ -38,7 +44,6 @@ Definitions are sourced from a variable list stored separately on your server.
 Please refer to apmx::variable_list_export() for a standard copy of the variable list.
 }
 \examples{
-\dontshow{if (exists("df_path") & exists("vl_path")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 ## Simple ex domain with 1 subject and 1 dose
 ex <- data.frame(STUDYID = "ABC101",
                  USUBJID = "ABC101-001",
@@ -75,19 +80,13 @@ pc <- data.frame(USUBJID = "ABC101-001",
                  PCTEST = "ABC",
                  PCSTRESU = "ug/mL")
 
-## Create with pk_build()
+## Create apmx dataset with pk_build()
 df <- pk_build(ex, pc)
 
-## Write with pk_write()
-df_path ##User designated filepath "C:/.../dataset.csv"
-if (file.exists(df_path)) {
-  pk_write(df, df_path)
-}
+## Create variable definitions with variable_list_create()
+vl <- variable_list_create()
 
-## Create definition file with pk_define()
-vl_path ##User designated variable list filepath "C:/.../variablelist.csv"
-if (file.exists(vl_path)) {
-  pk_define(df_path, "Project Name", vl_path)
-}
-\dontshow{\}) # examplesIf}
+## Create definition file
+pk_define(df, variable.list = vl)
+
 }

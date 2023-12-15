@@ -91,7 +91,7 @@
 #' df_combine <- pk_combine(df101, df102)
 #'
 #' @export
-pk_combine <- function(df1, df2, demo.map=T, na=-999) {
+pk_combine <- function(df1, df2, demo.map=TRUE, na=-999) {
   EVID <- DVID <- DVIDC <- DVIDU <- USUBJID <- NULL
   ATFD <- CMT <- NSTUDY <- NSTUDYC <- NULL
 
@@ -181,7 +181,7 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
     if (!i %in% df2$CMT) {
       warning(paste("CMT =", i, "not included in df2"))
     }
-    
+
     if (i %in% df1$CMT & i %in% df2$CMT) {
       dvid1 <- sort(unique(df1$DVID[df1$CMT==i]))
       dvid2 <- sort(unique(df2$DVID[df2$CMT==i]))
@@ -242,63 +242,63 @@ pk_combine <- function(df1, df2, demo.map=T, na=-999) {
   for (i in chr.cov) {
     name <- gsub("C$", "", i)
     if (i=="NSEXC") {
-      df$NSEX[grepl("m|male", df$NSEXC, ignore.case = T)] <- 0
-      df$NSEX[grepl("f|female", df$NSEXC, ignore.case = T)] <- 1
-      df$NSEX[grepl("unk", df$NSEXC, ignore.case = T)] <- 2
-      df$NSEX[grepl("other", df$NSEXC, ignore.case=T)] <- 3
+      df$NSEX[grepl("m|male", df$NSEXC, ignore.case = TRUE)] <- 0
+      df$NSEX[grepl("f|female", df$NSEXC, ignore.case = TRUE)] <- 1
+      df$NSEX[grepl("unk", df$NSEXC, ignore.case = TRUE)] <- 2
+      df$NSEX[grepl("other", df$NSEXC, ignore.case=TRUE)] <- 3
       if(length(sort(unique(df$NSEX)))!=length(sort(unique(df$NSEXC)))) {
         warning("At least one NSEX failed to map. Consider setting demo.map = FALSE.")
       }
     }
     else if (i=="TSEXC") {
-      df$TSEX[grepl("m|male", df$TSEXC, ignore.case = T)] <- 0
-      df$TSEX[grepl("f|female", df$TSEXC, ignore.case = T)] <- 1
-      df$TSEX[grepl("unk", df$TSEXC, ignore.case = T)] <- 2
-      df$TSEX[grepl("other", df$TSEXC, ignore.case = T)] <- 3
+      df$TSEX[grepl("m|male", df$TSEXC, ignore.case = TRUE)] <- 0
+      df$TSEX[grepl("f|female", df$TSEXC, ignore.case = TRUE)] <- 1
+      df$TSEX[grepl("unk", df$TSEXC, ignore.case = TRUE)] <- 2
+      df$TSEX[grepl("other", df$TSEXC, ignore.case = TRUE)] <- 3
       if(length(sort(unique(df$TSEX)))!=length(sort(unique(df$TSEXC)))) {
         warning("At least one TSEX failed to map. Consider setting demo.map = FALSE.")
       }
     }
     else if (i=="NRACEC") {
-      df$NRACE[grepl("white|caucasian", df$NRACEC, ignore.case = T)] <- 1
-      df$NRACE[grepl("black|african|aa", df$NRACEC, ignore.case = T)] <- 2
-      df$NRACE[grepl("asian", df$NRACEC, ignore.case = T) & !grepl("caucasian", df$NRACEC, ignore.case=T)] <- 3
-      df$NRACE[grepl("alaskan|native", df$NRACEC, ignore.case = T)] <- 4
-      df$NRACE[grepl("hawa|pacific|island", df$NRACEC, ignore.case = T)] <- 5
-      df$NRACE[grepl("multiple|mul", df$NRACEC, ignore.case = T)] <- 6
-      df$NRACE[grepl("other", df$NRACEC, ignore.case = T)] <- 7
-      df$NRACE[grepl("unknown", df$NRACEC, ignore.case = T)] <- 8
+      df$NRACE[grepl("white|caucasian", df$NRACEC, ignore.case = TRUE)] <- 1
+      df$NRACE[grepl("black|african|aa", df$NRACEC, ignore.case = TRUE)] <- 2
+      df$NRACE[grepl("asian", df$NRACEC, ignore.case = TRUE) & !grepl("caucasian", df$NRACEC, ignore.case=TRUE)] <- 3
+      df$NRACE[grepl("alaskan|native", df$NRACEC, ignore.case = TRUE)] <- 4
+      df$NRACE[grepl("hawa|pacific|island", df$NRACEC, ignore.case = TRUE)] <- 5
+      df$NRACE[grepl("multiple|mul", df$NRACEC, ignore.case = TRUE)] <- 6
+      df$NRACE[grepl("other", df$NRACEC, ignore.case = TRUE)] <- 7
+      df$NRACE[grepl("unknown", df$NRACEC, ignore.case = TRUE)] <- 8
       if(length(sort(unique(df$NRACE)))!=length(sort(unique(df$NRACEC)))) {
         warning("At least one NRACE failed to map. Consider setting demo.map = FALSE.")
       }
     }
     else if (i=="TRACEC") {
-      df$TRACE[grepl("white|caucasian", df$TRACEC, ignore.case = T)] <- 1
-      df$TRACE[grepl("black|african|aa", df$TRACEC, ignore.case = T)] <- 2
-      df$TRACE[grepl("asian", df$TRACEC, ignore.case = T) & !grepl("caucasian", df$TRACEC, ignore.case=T)] <- 3
-      df$TRACE[grepl("alaskan|native", df$TRACEC, ignore.case = T)] <- 4
-      df$TRACE[grepl("hawa|pacific|island", df$TRACEC, ignore.case = T)] <- 5
-      df$TRACE[grepl("multiple|mul", df$TRACEC, ignore.case = T)] <- 6
-      df$TRACE[grepl("other", df$TRACEC, ignore.case = T)] <- 7
-      df$TRACE[grepl("unknown", df$TRACEC, ignore.case = T)] <- 8
+      df$TRACE[grepl("white|caucasian", df$TRACEC, ignore.case = TRUE)] <- 1
+      df$TRACE[grepl("black|african|aa", df$TRACEC, ignore.case = TRUE)] <- 2
+      df$TRACE[grepl("asian", df$TRACEC, ignore.case = TRUE) & !grepl("caucasian", df$TRACEC, ignore.case=TRUE)] <- 3
+      df$TRACE[grepl("alaskan|native", df$TRACEC, ignore.case = TRUE)] <- 4
+      df$TRACE[grepl("hawa|pacific|island", df$TRACEC, ignore.case = TRUE)] <- 5
+      df$TRACE[grepl("multiple|mul", df$TRACEC, ignore.case = TRUE)] <- 6
+      df$TRACE[grepl("other", df$TRACEC, ignore.case = TRUE)] <- 7
+      df$TRACE[grepl("unknown", df$TRACEC, ignore.case = TRUE)] <- 8
       if(length(sort(unique(df$TRACE)))!=length(sort(unique(df$TRACEC)))) {
         warning("At least one TRACE failed to map. Consider setting demo.map = FALSE.")
       }
     }
     else if (i=="NETHNICC") {
-      df$NETHNIC[grepl("not", df$NETHNICC, ignore.case = T)] <- 0
-      df$NETHNIC[grepl("his", df$NETHNICC, ignore.case = T) & !grepl("not", df$NETHNICC, ignore.case=T)] <- 1
-      df$NETHNIC[grepl("unk", df$NETHNICC, ignore.case = T)] <- 2
-      df$NETHNIC[grepl("other", df$NETHNICC, ignore.case = T)] <- 3
+      df$NETHNIC[grepl("not", df$NETHNICC, ignore.case = TRUE)] <- 0
+      df$NETHNIC[grepl("his", df$NETHNICC, ignore.case = TRUE) & !grepl("not", df$NETHNICC, ignore.case=TRUE)] <- 1
+      df$NETHNIC[grepl("unk", df$NETHNICC, ignore.case = TRUE)] <- 2
+      df$NETHNIC[grepl("other", df$NETHNICC, ignore.case = TRUE)] <- 3
       if(length(sort(unique(df$NETHNIC)))!=length(sort(unique(df$NETHNICC)))) {
         warning("At least one NETHNIC failed to map. Consider setting demo.map = FALSE.")
       }
     }
     else if (i=="TETHNICC") {
-      df$TETHNIC[grepl("not", df$TETHNICC, ignore.case = T)] <- 0
-      df$TETHNIC[grepl("his", df$TETHNICC, ignore.case = T) & !grepl("not", df$TETHNICC, ignore.case=T)] <- 1
-      df$TETHNIC[grepl("unk", df$TETHNICC, ignore.case = T)] <- 2
-      df$TETHNIC[grepl("other", df$TETHNICC, ignore.case = T)] <- 3
+      df$TETHNIC[grepl("not", df$TETHNICC, ignore.case = TRUE)] <- 0
+      df$TETHNIC[grepl("his", df$TETHNICC, ignore.case = TRUE) & !grepl("not", df$TETHNICC, ignore.case=TRUE)] <- 1
+      df$TETHNIC[grepl("unk", df$TETHNICC, ignore.case = TRUE)] <- 2
+      df$TETHNIC[grepl("other", df$TETHNICC, ignore.case = TRUE)] <- 3
       if(length(sort(unique(df$TETHNIC)))!=length(sort(unique(df$TETHNICC)))) {
         warning("At least one TETHNIC failed to map. Consider setting demo.map = FALSE.")
       }

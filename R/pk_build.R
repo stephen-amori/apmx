@@ -72,8 +72,8 @@
 pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                      time.units="days", cycle.length=NA, na=-999,
                      time.rnd=NULL, amt.rnd=NULL, dv.rnd=NULL, cov.rnd=NULL,
-                     impute=NA, BDV=F, DDV=F, PDV=F, sparse=3,
-                     demo.map = T, tv.cov.fill = "downup", keep.other=T) {
+                     impute=NA, BDV=FALSE, DDV=FALSE, PDV=FALSE, sparse=3,
+                     demo.map = TRUE, tv.cov.fill = "downup", keep.other=TRUE) {
 
   USUBJID <- NDAY <- TPT <- ADDL <- II <- IMPEX <- ODV <- IMPDV <- DTIM <- NULL
   CMT <- EVID <- NTFD <- LDOSE1 <- TIMEU <- LDOSE2 <- NDOSE1 <- NDOSE2 <- NULL
@@ -84,7 +84,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   NTLC <- RATE <- LDV <- C <- SUBJID <- ID <- MDV <- LLOQ <- LINE <- NULL
   VISIT <- TPTC <- DOMAIN <- DVIDU <- VERSN <- BUILD <- DNTFD <- TIMEF <- NULL
   dvids <- NULL
-  func.version <- "1.0.0"
+  func.version <- "1.1.0"
 
   ###EX QC###
   cdisc.cols.ex <- data.frame("COLUMN" = c("USUBJID", "DTIM", "NDAY",
@@ -568,15 +568,15 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     }
   }
 
-  if (BDV==F & DDV==T & !any("BDV" %in% colnames(pd))) {
+  if (BDV==FALSE & DDV==TRUE & !any("BDV" %in% colnames(pd))) {
     stop("BDV parameter must be TRUE or BDV column must be included in pd to create DDV.")
   }
 
-  if (BDV==F & PDV==T & !any("BDV" %in% colnames(pd))) {
+  if (BDV==FALSE & PDV==TRUE & !any("BDV" %in% colnames(pd))) {
     stop("BDV parameter must be TRUE or BDV column must be included in pd to create PDV.")
   }
 
-  if (DDV==F & PDV==T & !any("BDV" %in% colnames(pd)) & !any("DDV" %in% colnames(pd))) {
+  if (DDV==FALSE & PDV==TRUE & !any("BDV" %in% colnames(pd)) & !any("DDV" %in% colnames(pd))) {
     stop("DDV parameter must be TRUE or BDV & DDV columns must be included in pd to create PDV.")
   }
 
@@ -659,11 +659,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
     df <- dplyr::group_by(df, USUBJID, EVID)
     df <- dplyr::mutate(df, FDOSE = ifelse(EVID==1 & dplyr::row_number()==1, as.character(DTIM), NA))
     df <- dplyr::ungroup(df)
-    if (!is.na(impute)) {
-      if (impute==1) {
-        df <- dplyr::arrange(df, USUBJID, NTFD)
-      }
-    }
+    df <- dplyr::arrange(df, USUBJID, NTFD)
     df <- dplyr::group_by(df, USUBJID)
     df <- tidyr::fill(df, NDOSE1, NDOSE2, .direction="downup")
     df <- dplyr::ungroup(df)
@@ -809,17 +805,17 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
   pd.dvs <- c()
   if (is.data.frame(pd)) {
 
-    if(BDV==T | "BDV" %in% colnames(pd)) {
+    if(BDV==TRUE | "BDV" %in% colnames(pd)) {
       pd.dvs <- c(pd.dvs, "BDV")
     }
-    if(DDV==T | "DDV" %in% colnames(pd)) {
+    if(DDV==TRUE | "DDV" %in% colnames(pd)) {
       pd.dvs <- c(pd.dvs, "DDV")
     }
-    if(PDV==T | "PDV" %in% colnames(pd)) {
+    if(PDV==TRUE | "PDV" %in% colnames(pd)) {
       pd.dvs <- c(pd.dvs, "PDV")
     }
 
-    if(BDV==T & !any("BDV" %in% colnames(pd))) {
+    if(BDV==TRUE & !any("BDV" %in% colnames(pd))) {
       df <- dplyr::arrange(df, USUBJID, DVIDC, ATFD)
       df <- dplyr::mutate(df,
                           PDOS = ifelse(ATFD<=0 & EVID==0, 1, 0))
@@ -871,12 +867,12 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
         if(!is.character(unlist(sl.cov[,name]))) {stop("STUDY in sl.cov must be character type.")
         }
       }
-      if (name=="SEX" & demo.map==T) {
+      if (name=="SEX" & demo.map==TRUE) {
         sl.cov[, "NSEX"] <- NA
-        sl.cov$NSEX[grepl("m|male", sl.cov$SEX, ignore.case = T)] <- 0
-        sl.cov$NSEX[grepl("f|female", sl.cov$SEX, ignore.case = T)] <- 1
-        sl.cov$NSEX[grepl("unk", sl.cov$SEX, ignore.case = T)] <- 2
-        sl.cov$NSEX[grepl("other", sl.cov$SEX, ignore.case = T)] <- 3
+        sl.cov$NSEX[grepl("m|male", sl.cov$SEX, ignore.case = TRUE)] <- 0
+        sl.cov$NSEX[grepl("f|female", sl.cov$SEX, ignore.case = TRUE)] <- 1
+        sl.cov$NSEX[grepl("unk", sl.cov$SEX, ignore.case = TRUE)] <- 2
+        sl.cov$NSEX[grepl("other", sl.cov$SEX, ignore.case = TRUE)] <- 3
         s.cat.cov.n <- c(s.cat.cov.n, "NSEX")
         s.cat.cov.c <- c(s.cat.cov.c, "NSEXC")
         colnames(sl.cov)[i] <- "NSEXC"
@@ -884,16 +880,16 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
           warning("At least one NSEXC failed to map. Consider setting demo.map = FALSE.")
         }
       }
-      else if (name=="RACE" & demo.map==T) {
+      else if (name=="RACE" & demo.map==TRUE) {
         sl.cov[, "NRACE"] <- NA
-        sl.cov$NRACE[grepl("white|caucasian", sl.cov$RACE, ignore.case = T)] <- 1
-        sl.cov$NRACE[grepl("black|african|aa", sl.cov$RACE, ignore.case = T)] <- 2
-        sl.cov$NRACE[grepl("asian", sl.cov$RACE, ignore.case = T) & !grepl("caucasian", sl.cov$RACE, ignore.case=T)] <- 3
-        sl.cov$NRACE[grepl("alaskan|native", sl.cov$RACE, ignore.case = T)] <- 4
-        sl.cov$NRACE[grepl("hawa|pacific|island", sl.cov$RACE, ignore.case = T)] <- 5
-        sl.cov$NRACE[grepl("multiple|mul", sl.cov$RACE, ignore.case = T)] <- 6
-        sl.cov$NRACE[grepl("other", sl.cov$RACE, ignore.case = T)] <- 7
-        sl.cov$NRACE[grepl("unknown", sl.cov$RACE, ignore.case = T)] <- 8
+        sl.cov$NRACE[grepl("white|caucasian", sl.cov$RACE, ignore.case = TRUE)] <- 1
+        sl.cov$NRACE[grepl("black|african|aa", sl.cov$RACE, ignore.case = TRUE)] <- 2
+        sl.cov$NRACE[grepl("asian", sl.cov$RACE, ignore.case = TRUE) & !grepl("caucasian", sl.cov$RACE, ignore.case=TRUE)] <- 3
+        sl.cov$NRACE[grepl("alaskan|native", sl.cov$RACE, ignore.case = TRUE)] <- 4
+        sl.cov$NRACE[grepl("hawa|pacific|island", sl.cov$RACE, ignore.case = TRUE)] <- 5
+        sl.cov$NRACE[grepl("multiple|mul", sl.cov$RACE, ignore.case = TRUE)] <- 6
+        sl.cov$NRACE[grepl("other", sl.cov$RACE, ignore.case = TRUE)] <- 7
+        sl.cov$NRACE[grepl("unknown", sl.cov$RACE, ignore.case = TRUE)] <- 8
         s.cat.cov.n <- c(s.cat.cov.n, "NRACE")
         s.cat.cov.c <- c(s.cat.cov.c, "NRACEC")
         colnames(sl.cov)[i] <- "NRACEC"
@@ -901,12 +897,12 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
           warning("At least one NRACE failed to map. Consider setting demo.map = FALSE.")
         }
       }
-      else if (name=="ETHNIC" & demo.map==T) {
+      else if (name=="ETHNIC" & demo.map==TRUE) {
         sl.cov[, "NETHNIC"] <- NA
-        sl.cov$NETHNIC[grepl("not", sl.cov$ETHNIC, ignore.case = T)] <- 0
-        sl.cov$NETHNIC[grepl("his", sl.cov$ETHNIC, ignore.case = T) & !grepl("not", sl.cov$ETHNIC, ignore.case=T)] <- 1
-        sl.cov$NETHNIC[grepl("unk", sl.cov$ETHNIC, ignore.case = T)] <- 2
-        sl.cov$NETHNIC[grepl("other", sl.cov$ETHNIC, ignore.case = T)] <- 3
+        sl.cov$NETHNIC[grepl("not", sl.cov$ETHNIC, ignore.case = TRUE)] <- 0
+        sl.cov$NETHNIC[grepl("his", sl.cov$ETHNIC, ignore.case = TRUE) & !grepl("not", sl.cov$ETHNIC, ignore.case=TRUE)] <- 1
+        sl.cov$NETHNIC[grepl("unk", sl.cov$ETHNIC, ignore.case = TRUE)] <- 2
+        sl.cov$NETHNIC[grepl("other", sl.cov$ETHNIC, ignore.case = TRUE)] <- 3
         s.cat.cov.n <- c(s.cat.cov.n, "NETHNIC")
         s.cat.cov.c <- c(s.cat.cov.c, "NETHNICC")
         colnames(sl.cov)[i] <- "NETHNICC"
@@ -961,12 +957,12 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
       if (name %in% c("USUBJID", "DTIM", "EVID", "DOMAIN")) {
         next
       }
-      else if (name=="SEX" & demo.map==T) {
+      else if (name=="SEX" & demo.map==TRUE) {
         tv.cov[, "TSEX"] <- NA
-        tv.cov$TSEX[grepl("m|male", tv.cov$SEX, ignore.case = T)] <- 0
-        tv.cov$TSEX[grepl("f|female", tv.cov$SEX, ignore.case = T)] <- 1
-        tv.cov$TSEX[grepl("unk|not|miss", tv.cov$SEX, ignore.case = T)] <- 2
-        tv.cov$TSEX[grepl("other", tv.cov$SEX, ignore.case = T)] <- 3
+        tv.cov$TSEX[grepl("m|male", tv.cov$SEX, ignore.case = TRUE)] <- 0
+        tv.cov$TSEX[grepl("f|female", tv.cov$SEX, ignore.case = TRUE)] <- 1
+        tv.cov$TSEX[grepl("unk|not|miss", tv.cov$SEX, ignore.case = TRUE)] <- 2
+        tv.cov$TSEX[grepl("other", tv.cov$SEX, ignore.case = TRUE)] <- 3
         t.cat.cov.n <- c(t.cat.cov.n, "TSEX")
         t.cat.cov.c <- c(t.cat.cov.c, "TSEXC")
         colnames(tv.cov)[i] <- "TSEXC"
@@ -974,16 +970,16 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
           warning("At least one TSEXC failed to map. Consider setting demo.map = FALSE.")
         }
       }
-      else if (name=="TRACE" & demo.map==T) {
+      else if (name=="TRACE" & demo.map==TRUE) {
         tv.cov[, "TRACE"] <- NA
-        tv.cov$TRACE[grepl("white|caucasian", tv.cov$RACE, ignore.case = T)] <- 1
-        tv.cov$TRACE[grepl("black|african|aa", tv.cov$RACE, ignore.case = T)] <- 2
-        tv.cov$NRACE[grepl("asian", tv.cov$RACE, ignore.case = T) & !grepl("caucasian", tv.cov$RACE, ignore.case=T)] <- 3
-        tv.cov$TRACE[grepl("alaskan|native", tv.cov$RACE, ignore.case = T)] <- 4
-        tv.cov$TRACE[grepl("hawa|pacific|island", tv.cov$RACE, ignore.case = T)] <- 5
-        tv.cov$TRACE[grepl("multiple|mul", tv.cov$RACE, ignore.case = T)] <- 6
-        tv.cov$TRACE[grepl("other", tv.cov$RACE, ignore.case = T)] <- 7
-        tv.cov$TRACE[grepl("unknown", tv.cov$RACE, ignore.case = T)] <- 8
+        tv.cov$TRACE[grepl("white|caucasian", tv.cov$RACE, ignore.case = TRUE)] <- 1
+        tv.cov$TRACE[grepl("black|african|aa", tv.cov$RACE, ignore.case = TRUE)] <- 2
+        tv.cov$NRACE[grepl("asian", tv.cov$RACE, ignore.case = TRUE) & !grepl("caucasian", tv.cov$RACE, ignore.case=TRUE)] <- 3
+        tv.cov$TRACE[grepl("alaskan|native", tv.cov$RACE, ignore.case = TRUE)] <- 4
+        tv.cov$TRACE[grepl("hawa|pacific|island", tv.cov$RACE, ignore.case = TRUE)] <- 5
+        tv.cov$TRACE[grepl("multiple|mul", tv.cov$RACE, ignore.case = TRUE)] <- 6
+        tv.cov$TRACE[grepl("other", tv.cov$RACE, ignore.case = TRUE)] <- 7
+        tv.cov$TRACE[grepl("unknown", tv.cov$RACE, ignore.case = TRUE)] <- 8
         t.cat.cov.n <- c(t.cat.cov.n, "TRACE")
         t.cat.cov.c <- c(t.cat.cov.c, "TRACEC")
         colnames(sl.cov)[i] <- "TRACEC"
@@ -991,12 +987,12 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
           warning("At least one TRACE failed to map. Consider setting demo.map = FALSE.")
         }
       }
-      else if (name=="ETHNIC" & demo.map==T) {
+      else if (name=="ETHNIC" & demo.map==TRUE) {
         tv.cov[, "TETHNIC"] <- NA
-        tv.cov$TETHNIC[grepl("not", tv.cov$ETHNIC, ignore.case = T)] <- 0
-        tv.cov$TETHNIC[grepl("his", tv.cov$ETHNIC, ignore.case = T)] <- 1
-        tv.cov$TETHNIC[grepl("unk", tv.cov$ETHNIC, ignore.case = T)] <- 2
-        tv.cov$TETHNIC[grepl("other", tv.cov$ETHNIC, ignore.case = T)] <- 3
+        tv.cov$TETHNIC[grepl("not", tv.cov$ETHNIC, ignore.case = TRUE)] <- 0
+        tv.cov$TETHNIC[grepl("his", tv.cov$ETHNIC, ignore.case = TRUE)] <- 1
+        tv.cov$TETHNIC[grepl("unk", tv.cov$ETHNIC, ignore.case = TRUE)] <- 2
+        tv.cov$TETHNIC[grepl("other", tv.cov$ETHNIC, ignore.case = TRUE)] <- 3
         t.cat.cov.n <- c(t.cat.cov.n, "TETHNIC")
         t.cat.cov.c <- c(t.cat.cov.c, "TETHNICC")
         colnames(sl.cov)[i] <- "TETHNICC"
@@ -1260,7 +1256,7 @@ pk_build <- function(ex, pc=NA, pd=NA, sl.cov=NA, tv.cov=NA,
                       tidyselect::all_of(t.cont.cov.units), DTIM, FDOSE, VERSN, BUILD)
 
   ###FILTER OTHER EVENTS###
-  if (keep.other==F) {
+  if (keep.other==FALSE) {
     df <- dplyr::filter(df, EVID!=2)
     df <- dplyr::mutate(df, LINE = dplyr::row_number())
   }

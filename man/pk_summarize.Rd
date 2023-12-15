@@ -5,12 +5,13 @@
 \title{Produce summary tables for a PK(PD) dataset}
 \usage{
 pk_summarize(
-  file,
+  df,
+  dir = NA,
   strat.by = "NSTUDYC",
-  ignore.c = T,
+  ignore.c = TRUE,
   na = -999,
-  docx = F,
-  pptx = F,
+  docx = FALSE,
+  pptx = FALSE,
   docx.font = "Times New Roman",
   docx.size = 9,
   docx.template = NULL,
@@ -18,18 +19,19 @@ pk_summarize(
   pptx.font = "Times New Roman",
   pptx.size = 12,
   docx.orientation = "portrait",
-  dir = NA,
   ignore.request = c()
 )
 }
 \arguments{
-\item{file}{filepath PK(PD) dataset produced by pk_build().}
+\item{df}{dataset produced by pk_build().}
+
+\item{dir}{filepath for output directory.}
 
 \item{strat.by}{vector of variables names to stratify the summary tables.}
 
 \item{ignore.c}{ignores records flagged in the C column when TRUE.}
 
-\item{na}{numeric value interpreted by -999.}
+\item{na}{numeric value to be interpreted as NA or missing.}
 
 \item{docx}{creates summary tables as a Word document when TRUE.}
 
@@ -49,8 +51,6 @@ pk_summarize(
 
 \item{docx.orientation}{orientation of .docx files.}
 
-\item{dir}{filepath for output directory. When NA, all files output to the same directory as the file parameter.}
-
 \item{ignore.request}{vector of additional logical expressions to filter the datase prior to summary.}
 }
 \value{
@@ -62,7 +62,6 @@ Outputs are default .csv files, but can also be .docx and/or .pptx
 Tables are default stratified by study, but can be stratified by any variable requested by the user.
 }
 \examples{
-\dontshow{if (exists("df_file")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 ## Simple ex domain with 1 subject and 1 dose
 ex <- data.frame(STUDYID = "ABC101",
                  USUBJID = "ABC101-001",
@@ -102,16 +101,10 @@ pc <- data.frame(USUBJID = "ABC101-001",
 ## Create with pk_build()
 df <- pk_build(ex, pc)
 
-## Write with pk_write()
-df_path ##User designated filepath "C:/.../dataset.csv"
-if (file.exists(df_path)) {
-  pk_write(df, df_path)
-}
 
 ## Generate summary statistics with pk_summarize()
-if (file.exists(df_path)) {
-  pk_summarize(df_path)
-}
+pk_summarize(df)
 
-\dontshow{\}) # examplesIf}
+
+
 }

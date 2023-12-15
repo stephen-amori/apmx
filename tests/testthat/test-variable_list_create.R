@@ -59,15 +59,21 @@ pkdf <- pk_build(ex = ex,
                  time.rnd = 3)
 ################### END: DUMMY DATA ####################
 
-test_that("variable_list_export QC", {
+test_that("variable_list_create QC", {
     # source("R/variable_list_export.R")
-    
-    expect_error(variable_list_export("not-valid-path"), "not-valid-path is not a valid filepath.")
-    current_path <- getwd()
-    expect_error(variable_list_export(current_path), "filepath must include document name and .csv suffix.")
-    current_path <- paste0(current_path, "/test-pk-define-files/pkdf4.csv")
-    # print(current_path)
-    variable_list_export(current_path)
-    expect_true(file.exists(current_path))
-    # unlink(current_path)
+
+  expect_error(variable_list_create(variable = c("a"), categorization = c("a", "b"), description = c("a", "b")),
+               "variable, categorization, and description must be the same length")
+  expect_error(variable_list_create(variable = c("a", "b"), categorization = c("a"), description = c("a", "b")),
+               "variable, categorization, and description must be the same length")
+  expect_error(variable_list_create(variable = c("a", "b"), categorization = c("a", "b"), description = c("a")),
+               "variable, categorization, and description must be the same length")
+  expect_error(variable_list_create(variable = c("a", "b"), categorization = c("a", "b"), description = c("a"), comment = c("a", "b")),
+               "variable, categorization, description, and comment must be the same length")
+  expect_error(variable_list_create(variable = c("a", "b"), categorization = c("a"), description = c("a", "b"), comment = c("a", "b")),
+               "variable, categorization, description, and comment must be the same length")
+  expect_error(variable_list_create(variable = c("a"), categorization = c("a", "b"), description = c("a", "b"), comment = c("a", "b")),
+               "variable, categorization, description, and comment must be the same length")
+  expect_error(variable_list_create(variable = c("a"), categorization = c("a", "b"), description = c("a", "b"), comment = c("a")),
+               "variable, categorization, description, and comment must be the same length")
 })
