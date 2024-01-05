@@ -405,7 +405,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
     out <- c(out, list(df.summary))
 
     if(!is.na(dir)) {
-      utils::write.csv(df.summary, paste0(dir, paste0("\\BLQ_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
+      utils::write.csv(df.summary, file.path(dir, paste0("BLQ_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
     }
 
     if(!is.na(dir) & docx==TRUE) {
@@ -462,7 +462,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
 
       tmplt <- officer::read_docx(path=docx.template)
       tmplt <- flextable::body_add_flextable(tmplt, df.summary1)
-      print(tmplt, target = paste0(dir, "\\BLQ_by_", i, ".docx"))
+      print(tmplt, target = file.path(dir, paste0("BLQ_by_", i, ".docx")))
     }
 
     if(!is.na(dir) & pptx==TRUE) {
@@ -484,7 +484,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
       tmplt <- officer::add_slide(tmplt)
       tmplt <- officer::ph_with(tmplt,
                                 value = df.summary1, location = officer::ph_location_fullsize())
-      print(tmplt, target = paste0(dir, "\\BLQ_by_", i, ".pptx"))
+      print(tmplt, target = file.path(dir, paste0("BLQ_by_", i, ".pptx")))
     }
 
     ###Cat covariate summary###
@@ -562,7 +562,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
     out <- c(out, list(cov))
 
     if(!is.na(dir)) {
-      utils::write.csv(cov, paste0(dir, paste0("\\CATCOV_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
+      utils::write.csv(cov, file.path(dir, paste0("CATCOV_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
     }
 
     if(!is.na(dir) & docx==TRUE) {
@@ -610,7 +610,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
 
       tmplt <- officer::read_docx(path=docx.template)
       tmplt <- flextable::body_add_flextable(tmplt, cov1)
-      print(tmplt, target = paste0(dir, "\\CATCOV_by_", i, ".docx"))
+      print(tmplt, target = file.path(dir, paste0("CATCOV_by_", i, ".docx")))
     }
 
     if(!is.na(dir) & pptx==TRUE) {
@@ -630,7 +630,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
       tmplt <- officer::add_slide(tmplt)
       tmplt <- officer::ph_with(tmplt,
                                 value = cov1, location = officer::ph_location_fullsize())
-      print(tmplt, target = paste0(dir, "\\CATCOV_by_", i, ".pptx"))
+      print(tmplt, target = file.path(dir, paste0("CATCOV_by_", i, ".pptx")))
     }
 
     ###Cont cov summary###
@@ -747,7 +747,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
       out <- append(out, list(cov))
 
       if(!is.na(dir)) {
-        utils::write.csv(cov, paste0(dir, paste0("\\CONTCOV_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
+        utils::write.csv(cov, file.path(dir, paste0("CONTCOV_by_", i, ".csv")), row.names = FALSE, quote = FALSE, na=".")
       }
 
       if(!is.na(dir) & docx==TRUE) {
@@ -793,7 +793,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
 
         tmplt <- officer::read_docx(path=docx.template)
         tmplt <- flextable::body_add_flextable(tmplt, cov1)
-        print(tmplt, target = paste0(dir, "\\CONTCOV_by_", i, ".docx"))
+        print(tmplt, target = file.path(dir, paste0("CONTCOV_by_", i, ".docx")))
       }
 
       if(!is.na(dir) & pptx==TRUE) {
@@ -815,7 +815,7 @@ pk_summarize <- function(df, dir = NA, strat.by = "NSTUDYC",
         tmplt <- officer::add_slide(tmplt)
         tmplt <- officer::ph_with(tmplt,
                                   value = cov1, location = officer::ph_location_fullsize())
-        print(tmplt, target = paste0(dir, "\\CONTCOV_by_", i, ".pptx"))
+        print(tmplt, target = file.path(dir, paste0("CONTCOV_by_", i, ".pptx")))
       }
     }
   }

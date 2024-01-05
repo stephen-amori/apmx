@@ -9,6 +9,8 @@ This is a resubmission. In this version I have:
 
 * Renamed vignette to a more descriptive title of the workflow involved.  
 
+* Updated filepaths in testthat folder to forward-slashes only.  
+
 ## R CMD check results
 
 0 errors | 0 warnings | 1 note

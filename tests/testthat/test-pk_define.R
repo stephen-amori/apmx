@@ -126,7 +126,6 @@ test_that("Checking to see if define file was created", {
 
     vl <- variable_list_create()
 
-    suppressWarnings({
         pk_define(df = pkdf,
                   variable.list = vl,
                   file = "test-pk-define-files/define.docx",
@@ -134,8 +133,7 @@ test_that("Checking to see if define file was created", {
                   data = "Dataset.csv",
                   na = -999,
                   template = "test-pk-define-files/template_define.docx")
-    })
         # This writes in place.
-        expect_true(file.exists("test-pk-define-files\\define.docx"))
-        unlink("test-pk-define-files\\define.docx")
+        expect_true(file.exists("test-pk-define-files/define.docx"))
+        unlink("test-pk-define-files/define.docx")
 })

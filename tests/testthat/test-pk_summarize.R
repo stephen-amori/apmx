@@ -72,7 +72,7 @@ test_that("Filter out (new addition!)", {
     expect_error(pk_summarize(df = pkdf, pptx = "hello"), regexp = "pptx parameter must be TRUE or FALSE")
     expect_error(pk_summarize(df = pkdf, pptx = "hello"), regexp = "pptx parameter must be TRUE or FALSE")
     expect_error(pk_summarize(df = pkdf, pptx = "hello"), regexp = "pptx parameter must be TRUE or FALSE")
-    expect_error(pk_summarize(df = pkdf, docx = TRUE, docx.template = "some-file-path//fail.pdf"),
+    expect_error(pk_summarize(df = pkdf, docx = TRUE, docx.template = "test-pk-summarize-files/fail.pdf"),
                  "fail.pdf must include document name and .docx suffix.")
 })
 
@@ -89,9 +89,9 @@ test_that("Writing CSVs", {
     pk_summarize(df = pkdf,
                  dir = "test-pk-summarize-files")
 
-    blq_check_path <- paste0("test-pk-summarize-files\\BLQ_by_NSTUDYC.csv")
-    contcov_check_path <- paste0("test-pk-summarize-files\\CONTCOV_by_NSTUDYC.csv")
-    catcov_check_path <- paste0("test-pk-summarize-files\\CATCOV_by_NSTUDYC.csv")
+    blq_check_path <- paste0("test-pk-summarize-files/BLQ_by_NSTUDYC.csv")
+    contcov_check_path <- paste0("test-pk-summarize-files/CONTCOV_by_NSTUDYC.csv")
+    catcov_check_path <- paste0("test-pk-summarize-files/CATCOV_by_NSTUDYC.csv")
     expect_true(file.exists(blq_check_path))
     expect_true(file.exists(contcov_check_path))
     expect_true(file.exists(catcov_check_path))
@@ -116,7 +116,7 @@ test_that("Testing Word and PowerPoint", {
     # DEBUG:
     # check_blq <- read.csv(paste0(working_dir, "/tests/testthat/test-pk-summarize-files/BLQ_by_NSTUDYC.csv"))
 
-    check_blq <- read.csv(paste0("test-pk-summarize-files\\BLQ_by_NSTUDYC.csv"))
+    check_blq <- read.csv(paste0("test-pk-summarize-files/BLQ_by_NSTUDYC.csv"))
     expect_equal(check_blq$STUDYID[4], '5')
     expect_equal(check_blq$STUDYID[9], "1 (100%)")
     expect_equal(check_blq$STUDYID[13], "1 (100%)")
@@ -125,7 +125,7 @@ test_that("Testing Word and PowerPoint", {
     # DEBUG:
     # check_cat_cov <- read.csv(paste0(working_dir, "/tests/testthat/test-pk-summarize-files/CATCOV_by_NSTUDY.csv"))
 
-    check_cat_cov <- read.csv(paste0("test-pk-summarize-files\\CATCOV_by_NSTUDYC.csv"))
+    check_cat_cov <- read.csv(paste0("test-pk-summarize-files/CATCOV_by_NSTUDYC.csv"))
     expect_equal(check_cat_cov$Value[2], "QD")
     expect_equal(check_cat_cov$STUDYID[2], "3 (100%)")
     expect_equal(check_cat_cov$STUDYID[3], "NROUTE")
@@ -135,7 +135,7 @@ test_that("Testing Word and PowerPoint", {
     # DEBUG:
     # check_cat_cov <- read.csv(paste0(working_dir, "/tests/testthat/test-pk-summarize-files/CONT_COV_by_NSTUDY.csv"))
 
-    check_cont_cov <- read.csv(paste0("test-pk-summarize-files\\CONTCOV_by_NSTUDYC.csv"))
+    check_cont_cov <- read.csv(paste0("test-pk-summarize-files/CONTCOV_by_NSTUDYC.csv"))
     expect_equal(check_cont_cov$STUDYID[1], "BAGE")
     expect_equal(check_cont_cov$STUDYID[3], "30.6 (6.23)")
     expect_equal(check_cont_cov$STUDYID[4], "29 (27; 30)")
@@ -143,8 +143,8 @@ test_that("Testing Word and PowerPoint", {
     expect_equal(check_cont_cov$Total[6], "25; 41")
 
     # Remove generated files.
-    unlink("test-pk-summarize-files\\BLQ_by_NSTUDYC.csv")
-    unlink("test-pk-summarize-files\\CATCOV_by_NSTUDYC.csv")
-    unlink("test-pk-summarize-files\\CONTCOV_by_NSTUDYC.csv")
+    unlink("test-pk-summarize-files/BLQ_by_NSTUDYC.csv")
+    unlink("test-pk-summarize-files/CATCOV_by_NSTUDYC.csv")
+    unlink("test-pk-summarize-files/CONTCOV_by_NSTUDYC.csv")
 
 })

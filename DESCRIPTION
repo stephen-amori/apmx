@@ -1,8 +1,8 @@
 Package: apmx
 Type: Package
 Title: Automated Population Pharmacokinetic Dataset Assembly
-Version: 1.1.0
-Date: 2023-12-15
+Version: 1.1.1
+Date: 2024-01-05
 Authors@R: c(
     person("Stephen", "Amori", email="stephen.amori@amadorbio.com", role = c("aut", "cre", "cph")),
     person("Ethan", "DellaMaestra", email="ethan.dellamaestra@amadorbio.com", role = c("aut")),
